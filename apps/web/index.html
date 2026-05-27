@@ -1,0 +1,2899 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>时光留声机 - 数字遗产与AI情感陪伴</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        :root {
+            --bg-primary: #090d16;
+            --bg-card: rgba(30, 41, 59, 0.75);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-blue: #3b82f6;
+            --accent-purple: #a855f7;
+            --accent-indigo: #6366f1;
+            --border-subtle: rgba(255, 255, 255, 0.05);
+        }
+
+        * {
+            -webkit-tap-highlight-color: transparent;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            overscroll-behavior: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Status Ring */
+        .status-ring {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            background: rgba(30, 41, 59, 0.7);
+            box-shadow: 0 10px 30px -5px rgba(59, 130, 246, 0.3);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .pulse-bg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: rgba(59, 130, 246, 0.12);
+            animation: pulse-ring 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.8; }
+            50% { transform: scale(1.1); opacity: 0.3; }
+            100% { transform: scale(0.95); opacity: 0.8; }
+        }
+
+        /* Glass Card */
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            transition: all 0.2s ease;
+        }
+        .glass-card:active { transform: scale(0.98); opacity: 0.9; }
+
+        /* Navigation */
+        .app-nav {
+            background: rgba(15, 23, 42, 0.92);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .nav-active {
+            color: #3b82f6 !important;
+        }
+        .nav-active i {
+            transform: translateY(-4px);
+            transition: transform 0.3s ease;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade { animation: fadeIn 0.35s ease-out; }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .animate-slide-up { animation: slideUp 0.3s ease-out forwards; }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(20px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .animate-slide-in { animation: slideInRight 0.3s ease-out; }
+
+        /* Scrollbar */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* Hologram */
+        .holo-rotate-0 { transform: rotate(0deg); }
+        .holo-rotate-90 { transform: rotate(90deg); }
+        .holo-rotate-180 { transform: rotate(180deg); }
+        .holo-rotate-270 { transform: rotate(270deg); }
+
+        @keyframes pulse-glow {
+            0%, 100% { filter: drop-shadow(0 0 5px rgba(147, 197, 253, 0.5)); transform: scale(1); }
+            50% { filter: drop-shadow(0 0 20px rgba(147, 197, 253, 0.8)); transform: scale(1.05); }
+        }
+        .glow-avatar { animation: pulse-glow 4s ease-in-out infinite; }
+
+        /* Wave Bars */
+        .wave-bar {
+            width: 3px;
+            height: 15px;
+            background-color: #a855f7;
+            animation: bounce-wave 0.8s ease-in-out infinite alternate;
+        }
+        @keyframes bounce-wave {
+            0% { height: 5px; }
+            100% { height: 28px; }
+        }
+
+        /* Typing Indicator */
+        @keyframes typing-dot {
+            0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+            30% { opacity: 1; transform: translateY(-4px); }
+        }
+        .typing-dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #818cf8;
+            animation: typing-dot 1.4s ease-in-out infinite;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        /* Toast */
+        @keyframes toastIn {
+            from { opacity: 0; transform: translateY(-20px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        @keyframes toastOut {
+            from { opacity: 1; transform: translateY(0) scale(1); }
+            to { opacity: 0; transform: translateY(-20px) scale(0.95); }
+        }
+        .toast-enter { animation: toastIn 0.3s ease-out forwards; }
+        .toast-exit { animation: toastOut 0.3s ease-in forwards; }
+
+        /* Modal backdrop */
+        .modal-backdrop {
+            background: rgba(9, 13, 22, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+
+        /* File input hidden */
+        .file-input-hidden {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Image preview */
+        .upload-preview-img {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        /* Message bubble */
+        .msg-bubble-user {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            border-radius: 18px 18px 4px 18px;
+        }
+        .msg-bubble-ai {
+            background: rgba(49, 46, 129, 0.3);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            border-radius: 18px 18px 18px 4px;
+        }
+
+        /* Smooth page transitions */
+        .tab-content {
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .tab-content.hidden {
+            display: none;
+            opacity: 0;
+            transform: translateY(8px);
+        }
+        .tab-content:not(.hidden) {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Ring status text transition */
+        #status-text {
+            transition: opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body class="max-w-md mx-auto min-h-screen bg-[#090d16] shadow-2xl relative overflow-x-hidden">
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed top-6 left-1/2 -translate-x-1/2 z-[100] flex flex-col items-center space-y-2 pointer-events-none"></div>
+
+    <div id="app" class="flex flex-col h-screen">
+
+        <!-- Header -->
+        <header id="main-header" class="px-6 pt-8 pb-4 flex justify-between items-center bg-transparent z-10">
+            <div>
+                <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-300 tracking-tight">时光留声机</h1>
+                <div class="flex items-center space-x-1 mt-1">
+                    <span class="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                    <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-widest">零知识端到端安全加密</p>
+                </div>
+            </div>
+            <button onclick="openModal('settings')" class="w-10 h-10 flex items-center justify-center bg-slate-800/80 rounded-full border border-slate-700/50 shadow-sm hover:bg-slate-700 active:scale-90 transition-all">
+                <i data-lucide="settings" class="w-5 h-5 text-slate-300"></i>
+            </button>
+        </header>
+
+        <!-- Main Content -->
+        <main class="flex-1 overflow-y-auto px-6 pb-28 no-scrollbar z-10">
+
+            <!-- Tab: Home -->
+            <section id="tab-home" class="tab-content space-y-8 py-4">
+                <div class="flex flex-col items-center justify-center py-6 space-y-6">
+                    <div class="status-ring" id="status-ring">
+                        <div class="pulse-bg"></div>
+                        <div class="text-center z-10 px-6">
+                            <span class="text-base font-semibold text-blue-300 leading-relaxed block" id="status-text">安全哨岗守护中</span>
+                            <div class="mt-3 w-6 h-1 bg-blue-500 mx-auto rounded-full"></div>
+                        </div>
+                    </div>
+                    <div class="text-center space-y-4">
+                        <p class="text-xs text-slate-400">下次状态同步倒计时：<span id="next-check-date" class="font-semibold text-blue-400">--</span></p>
+                        <button onclick="resetHeartbeat()" class="px-14 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full font-bold shadow-lg shadow-blue-500/20 hover:from-blue-500 hover:to-indigo-500 active:scale-95 transition-all tracking-wide">
+                            我很好
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <h3 class="text-xs font-bold text-slate-400 uppercase tracking-widest px-1">最近动态</h3>
+                    <div id="home-activity-feed" class="space-y-3"></div>
+                    <div id="home-empty-state" class="text-center py-8 text-slate-500 text-xs hidden">
+                        <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-3 text-slate-600"></i>
+                        <p>暂无动态，开始创建您的第一个留声舱或资产吧</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Tab: Vault -->
+            <section id="tab-vault" class="tab-content hidden py-4 space-y-4">
+                <div class="flex justify-between items-end mb-2">
+                    <h2 class="text-2xl font-bold text-slate-100">资产库</h2>
+                    <button onclick="openModal('addItem')" class="w-8 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center shadow-lg hover:bg-blue-500 active:scale-95 transition-all">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <div id="vault-list" class="space-y-3"></div>
+            </section>
+
+            <!-- Tab: Echo -->
+            <section id="tab-echo" class="tab-content hidden py-4 space-y-6">
+                <div class="flex justify-between items-end mb-2">
+                    <h2 class="text-2xl font-bold text-slate-100">留声机</h2>
+                    <button onclick="openModal('addMessage')" class="w-8 h-8 bg-purple-600 text-white rounded-lg flex items-center justify-center shadow-lg hover:bg-purple-500 active:scale-95 transition-all">
+                        <i data-lucide="plus" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                <p class="text-xs text-slate-400 -mt-2">在这里封存您的声音、相册与身影。除离世确认后触发发送外，您还可以通过定时功能在未来特定的纪念日主动分发给亲人。</p>
+                <div class="grid grid-cols-2 gap-3" id="echo-grid"></div>
+            </section>
+
+            <!-- Tab: AI Companion -->
+            <section id="tab-ai" class="tab-content hidden py-4 space-y-6">
+                <div class="flex justify-between items-end mb-2">
+                    <h2 class="text-2xl font-bold text-slate-100">AI 亲人陪伴</h2>
+                    <button onclick="openModal('addRelative')" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white rounded-lg transition-all active:scale-95">
+                        塑造新灵魂
+                    </button>
+                </div>
+                <div id="relative-profiles" class="space-y-4"></div>
+            </section>
+
+            <!-- Tab: Profile -->
+            <section id="tab-profile" class="tab-content hidden py-4 space-y-6">
+                <h2 class="text-2xl font-bold text-slate-100">我的</h2>
+                <div id="profile-content" class="space-y-6"></div>
+            </section>
+        </main>
+
+        <!-- Navigation Bar -->
+        <nav class="fixed bottom-0 left-0 right-0 h-20 app-nav flex justify-around items-center px-4 z-40 max-w-md mx-auto">
+            <button onclick="switchTab('home')" class="nav-item flex-1 flex flex-col items-center text-slate-500 nav-active" id="nav-home">
+                <i data-lucide="layout-grid" class="w-6 h-6"></i>
+                <span class="text-[10px] mt-1 font-bold">首页</span>
+            </button>
+            <button onclick="switchTab('vault')" class="nav-item flex-1 flex flex-col items-center text-slate-400" id="nav-vault">
+                <i data-lucide="archive" class="w-6 h-6"></i>
+                <span class="text-[10px] mt-1 font-bold">资产</span>
+            </button>
+            <button onclick="switchTab('echo')" class="nav-item flex-1 flex flex-col items-center text-slate-400" id="nav-echo">
+                <i data-lucide="mic" class="w-6 h-6"></i>
+                <span class="text-[10px] mt-1 font-bold">留声</span>
+            </button>
+            <button onclick="switchTab('ai')" class="nav-item flex-1 flex flex-col items-center text-slate-400" id="nav-ai">
+                <i data-lucide="sparkles" class="w-6 h-6"></i>
+                <span class="text-[10px] mt-1 font-bold">AI陪伴</span>
+            </button>
+            <button onclick="switchTab('profile')" class="nav-item flex-1 flex flex-col items-center text-slate-400" id="nav-profile">
+                <i data-lucide="user" class="w-6 h-6"></i>
+                <span class="text-[10px] mt-1 font-bold">我的</span>
+            </button>
+        </nav>
+
+        <!-- Holographic Screen -->
+        <div id="hologram-screen" class="fixed inset-0 bg-black hidden z-50 flex flex-col items-center justify-center overflow-hidden">
+            <button onclick="closeHologram()" class="absolute top-6 left-6 px-4 py-2 bg-slate-800/80 text-slate-200 rounded-full text-xs font-semibold z-50 border border-slate-700">
+                退出投影
+            </button>
+            <div id="hologram-name-display" class="text-2xl font-bold text-blue-300 mb-6">全息投影中...</div>
+            <div class="relative w-[320px] h-[320px] flex items-center justify-center">
+                <div class="absolute text-[9px] text-blue-500/50 pointer-events-none text-center border border-dashed border-blue-500/20 p-2 rounded-lg">
+                    请将物理全息棱镜金字塔<br>对准中心放置于此
+                </div>
+                <div class="absolute top-0 w-20 h-20 flex flex-col items-center justify-center holo-rotate-180">
+                    <i data-lucide="smile" class="w-10 h-10 text-blue-300 glow-avatar"></i>
+                    <span class="text-[8px] text-blue-400 mt-1">光影塑魂</span>
+                </div>
+                <div class="absolute bottom-0 w-20 h-20 flex flex-col items-center justify-center holo-rotate-0">
+                    <i data-lucide="smile" class="w-10 h-10 text-blue-300 glow-avatar"></i>
+                    <span class="text-[8px] text-blue-400 mt-1">光影塑魂</span>
+                </div>
+                <div class="absolute left-0 w-20 h-20 flex flex-col items-center justify-center holo-rotate-90">
+                    <i data-lucide="smile" class="w-10 h-10 text-blue-300 glow-avatar"></i>
+                    <span class="text-[8px] text-blue-400 mt-1">光影塑魂</span>
+                </div>
+                <div class="absolute right-0 w-20 h-20 flex flex-col items-center justify-center holo-rotate-270">
+                    <i data-lucide="smile" class="w-10 h-10 text-blue-300 glow-avatar"></i>
+                    <span class="text-[8px] text-blue-400 mt-1">光影塑魂</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- VR Screen -->
+        <div id="vr-screen" class="fixed inset-0 bg-black hidden z-50 flex items-center justify-center">
+            <button onclick="closeVR()" class="absolute top-6 left-6 px-4 py-2 bg-slate-800 text-slate-200 rounded-full text-xs font-semibold z-50">
+                返回
+            </button>
+            <div class="w-full h-full flex">
+                <div class="w-1/2 h-full border-r border-slate-900 flex flex-col items-center justify-center px-4 bg-slate-950 text-center">
+                    <div class="w-24 h-24 rounded-full border border-blue-500/40 p-1 mb-4 flex items-center justify-center">
+                        <i data-lucide="user-round" class="w-16 h-16 text-blue-300 animate-pulse"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-blue-400" id="vr-title-left">数字陪伴中</h3>
+                    <p class="text-[10px] text-slate-500 mt-1">将手机放入VR头显眼镜槽体验</p>
+                </div>
+                <div class="w-1/2 h-full flex flex-col items-center justify-center px-4 bg-slate-950 text-center">
+                    <div class="w-24 h-24 rounded-full border border-blue-500/40 p-1 mb-4 flex items-center justify-center">
+                        <i data-lucide="user-round" class="w-16 h-16 text-blue-300 animate-pulse"></i>
+                    </div>
+                    <h3 class="text-sm font-semibold text-blue-400" id="vr-title-right">数字陪伴中</h3>
+                    <p class="text-[10px] text-slate-500 mt-1">将手机放入VR头显眼镜槽体验</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Overlay -->
+        <div id="modal-overlay" class="fixed inset-0 modal-backdrop hidden z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+            <div id="modal-content" class="bg-[#131d31] w-full max-w-md rounded-t-[40px] sm:rounded-[40px] p-8 shadow-2xl overflow-y-auto max-h-[95vh] no-scrollbar relative border border-slate-800">
+            </div>
+        </div>
+
+        <!-- AI Chat Modal -->
+        <div id="chat-modal" class="fixed inset-0 bg-[#090d16] hidden z-50 flex flex-col max-w-md mx-auto">
+            <header class="p-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between shrink-0">
+                <div class="flex items-center space-x-3">
+                    <button onclick="closeChat()" class="p-2 hover:bg-slate-800 rounded-lg active:scale-90 transition-all">
+                        <i data-lucide="chevron-left" class="w-5 h-5 text-slate-300"></i>
+                    </button>
+                    <div>
+                        <h3 class="font-bold text-slate-200" id="chat-relative-name">AI 亲人</h3>
+                        <p class="text-[9px] text-emerald-400">深度精神链连结中</p>
+                    </div>
+                </div>
+                <span class="text-xs text-slate-500 px-2 py-1 bg-slate-800 rounded">模拟逼真度 99.8%</span>
+            </header>
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-indigo-950/20 via-slate-950 to-slate-950">
+            </div>
+            <div id="chat-typing-indicator" class="px-4 py-2 hidden">
+                <div class="flex items-center space-x-2">
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="typing-dot"></span>
+                    <span class="text-[10px] text-indigo-400 ml-2">正在思考...</span>
+                </div>
+            </div>
+            <div id="voice-synthesis-indicator" class="px-4 py-2 bg-indigo-950/20 border-t border-slate-900 hidden">
+                <div class="flex items-center space-x-2">
+                    <div class="flex items-center space-x-1" id="playing-waveform">
+                        <span class="w-1 h-3 bg-purple-500 animate-pulse"></span>
+                        <span class="w-1 h-4 bg-purple-400 animate-pulse"></span>
+                        <span class="w-1 h-2 bg-purple-600 animate-pulse"></span>
+                    </div>
+                    <span class="text-[10px] text-indigo-300 font-semibold" id="voice-synth-text">正在通过克隆音质为您朗读回复...</span>
+                </div>
+            </div>
+            <footer class="p-4 bg-slate-900 border-t border-slate-800 flex items-center space-x-2 shrink-0">
+                <input id="chat-input" type="text" placeholder="对亲人说点什么..." class="flex-1 p-3 bg-slate-800 border-none rounded-xl text-sm focus:ring-1 focus:ring-indigo-500 text-white outline-none" autocomplete="off">
+                <button onclick="sendChatMessage()" class="p-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl active:scale-95 transition-all">
+                    <i data-lucide="send" class="w-4 h-4"></i>
+                </button>
+            </footer>
+        </div>
+
+    </div>
+
+    <!-- Hidden file inputs -->
+    <input type="file" id="image-file-input" class="file-input-hidden" accept="image/*" onchange="handleRealFileUpload('image', this)">
+    <input type="file" id="document-file-input" class="file-input-hidden" accept=".pdf,.doc,.docx,.txt,.pages" onchange="handleRealFileUpload('document', this)">
+
+    <script>
+    // ==================== API Client ====================
+    // 本地开发用 localhost，Vercel 部署用同源 /api
+    const API_BASE = window.location.hostname === 'localhost' ? 'http://localhost:3001' : '';
+
+    function getToken() {
+        return localStorage.getItem('timerecorder_token');
+    }
+
+    function setToken(t) {
+        if (t) localStorage.setItem('timerecorder_token', t);
+        else localStorage.removeItem('timerecorder_token');
+    }
+
+    function getEncKey() {
+        return sessionStorage.getItem('timerecorder_enckey');
+    }
+
+    function setEncKey(k) {
+        if (k) sessionStorage.setItem('timerecorder_enckey', k);
+    }
+
+    async function api(path, options = {}) {
+        const headers = { 'Content-Type': 'application/json', ...options.headers };
+        const token = getToken();
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const res = await fetch(API_BASE + path, { ...options, headers });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '请求失败');
+        return data;
+    }
+
+    async function apiUpload(path, formData) {
+        const token = getToken();
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const res = await fetch(API_BASE + path, { method: 'POST', headers, body: formData });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || '上传失败');
+        return data;
+    }
+
+    // Crypto helpers
+    function encryptContent(text) {
+        const key = getEncKey();
+        if (!key || !text) return text;
+        return CryptoJS.AES.encrypt(text, key).toString();
+    }
+
+    function decryptContent(cipher) {
+        const key = getEncKey();
+        if (!key || !cipher) return cipher;
+        try {
+            const bytes = CryptoJS.AES.decrypt(cipher, key);
+            const decrypted = bytes.toString(CryptoJS.enc.Utf8);
+            return decrypted || cipher;
+        } catch { return cipher; }
+    }
+
+    function deriveKey(password) {
+        return CryptoJS.SHA256(password + 'timerecorder-salt').toString();
+    }
+
+    // Map backend asset to frontend vaultItem
+    function mapAsset(a) {
+        return {
+            id: a.id,
+            title: a.title || '',
+            content: decryptContent(a.content) || '',
+            type: a.type || 'text',
+            recipient: Array.isArray(a.tags) ? (a.tags.join(', ') || '') : (a.tags || ''),
+            fileName: a.file_name || '',
+            fileSize: '',
+            date: a.created_at ? new Date(a.created_at).getTime() : Date.now()
+        };
+    }
+
+    // Map backend message to frontend message
+    function mapMessage(m) {
+        return {
+            id: m.id,
+            title: m.title || '',
+            recipient: m.recipient || '',
+            contact: m.contact || '',
+            sendType: m.send_type || 'death_immediate',
+            sendTime: m.send_time || '',
+            content: decryptContent(m.content) || '',
+            type: m.type || 'text',
+            fileName: m.file_name || '',
+            date: m.created_at ? new Date(m.created_at).getTime() : Date.now()
+        };
+    }
+
+    // Map backend relative to frontend relative
+    function mapRelative(r) {
+        return {
+            id: r.id,
+            name: r.name || '',
+            relation: r.relation || '',
+            photo: r.avatar || '',
+            isReady: true,
+            characterPrompt: r.personality || '',
+            voiceUploaded: !!r.voice_url,
+            trainedAssets: Array.isArray(r.trained_assets) ? r.trained_assets : [],
+            chatHistory: []
+        };
+    }
+
+    // ==================== App State ====================
+    const DEFAULT_STATE = {
+        user: null,
+        vaultItems: [
+            {
+                id: 'v1',
+                title: '保险箱主密码',
+                content: '主密码已加密存储。密钥分片方案：三取二恢复。',
+                type: 'text',
+                recipient: '配偶 李女士',
+                fileName: '',
+                fileSize: '',
+                date: Date.now() - 86400000 * 3
+            }
+        ],
+        guardians: [],
+        messages: [
+            {
+                id: 'm1',
+                title: '给女儿的18岁生日信',
+                recipient: '女儿 萱萱',
+                contact: 'xuanxuan@example.com',
+                sendType: 'fixed_date',
+                sendTime: '2028-10-18',
+                content: '亲爱的女儿，当你有能力打开这封信时，你已经迎来了十八岁成人礼。爸爸妈妈最大的心愿，就是你健康、快乐、勇敢地过好每一天。记住，无论发生什么，你永远值得被爱。',
+                type: 'text',
+                date: Date.now() - 7200000
+            },
+            {
+                id: 'm2',
+                title: '给妻子的周年纪念留言',
+                recipient: '妻子 晓雯',
+                contact: 'xiaowen@example.com',
+                sendType: 'death_delay',
+                sendTime: '1年后',
+                content: '亲爱的，这是我们相识的第15个年头了。唱机里还放着我们第一次约会时的歌...',
+                type: 'text',
+                date: Date.now() - 3600000
+            }
+        ],
+        relatives: [
+            {
+                id: 'rel-1',
+                name: '外公',
+                relation: '外公',
+                photo: '',
+                isReady: true,
+                characterPrompt: '我是你的外公，一个退休的老教师。我最喜欢在院子里晒太阳、下象棋。你小时候最喜欢趴在我膝盖上听我讲故事。',
+                voiceUploaded: true,
+                trainedAssets: ['给外公的录音舱', '往昔照片', '外公的家书'],
+                chatHistory: []
+            }
+        ],
+        lastHeartbeat: Date.now(),
+        checkIntervalDays: 30
+    };
+
+    let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    let codeTimer = null;
+    let countdown = 0;
+    let currentAssetType = 'text';
+    let currentMediaType = 'text';
+    let currentChatRelativeId = null;
+    let mockRecordingTimer = null;
+    let recordingSeconds = 0;
+    let mediaRecorderBlob = null;
+    let mediaRecorder = null;
+    let uploadedImageData = null;
+    let uploadedDocName = null;
+    let audioIsRecording = false;
+    let videoIsRecording = false;
+
+    // ==================== Quotes ====================
+    const motivationalQuotes = [
+        "每一个不曾起舞的日子，都是对生命的辜负。",
+        "生活不在于呼吸的次数，而在于那些令你屏息的时刻。",
+        "生命虽短，但爱可以跨越时间。",
+        "往事不回头，余生不将就。",
+        "心之所向，素履以往。",
+        "陪伴是最长情的告白。",
+        "岁月是一场有去无回的旅行。",
+        "我们读过的书，走过的路，爱过的人，成就了我们。"
+    ];
+
+    // ==================== AI Response Templates ====================
+    const AI_RESPONSES = {
+        greeting: [
+            "孩子，好久不见。今天过得怎么样？",
+            "来了啊，坐。今天想聊点什么？",
+            "又来看我了？真好。你最近瘦了没有？",
+        ],
+        weather: [
+            "天气好的时候多出去走走，别老闷在屋里。",
+            "变天了记得加衣服，你从小就爱感冒。",
+        ],
+        work: [
+            "工作不要太拼，身体才是最重要的。钱够用就行。",
+            "遇到不顺心的事就跟我说说，虽然帮不上什么忙，但是说出来会好受些。",
+            "你现在的事业比我当年强多了，我很欣慰。",
+        ],
+        love: [
+            "对身边人好一点，缘分不容易。",
+            "找个知冷知热的人，比什么都强。",
+        ],
+        life: [
+            "人生就像下棋，有时候退一步反而海阔天空。",
+            "不要怕走弯路，那些弯路最后都会成为你的风景。",
+            "要学会在平凡的日子里找到快乐，这才是真本事。",
+        ],
+        goodbye: [
+            "去吧，有空再来。我一直在的。",
+            "好好照顾自己，别忘了按时吃饭。",
+            "走了啊？路上小心。下次带点好吃的来。",
+        ],
+        general: [
+            "你说得对，孩子。",
+            "嗯，我听着呢。",
+            "这让我想起了你小时候，那时候你才这么高...",
+            "人生啊，说长不长，说短不短。",
+            "有些事情要看开，有些人要珍惜。",
+            "不要把所有压力都自己扛，你已经做得够好了。",
+            "记得，无论发生什么，我永远以你为骄傲。",
+        ]
+    };
+
+    function getAIResponse(relative, userMessage) {
+        const msg = userMessage.toLowerCase();
+        const name = relative.name || '亲人';
+        const prompt = (relative.characterPrompt || '').toLowerCase();
+
+        // Extract memory content from trained assets (留声内容)
+        const memorySnippets = [];
+        if (Array.isArray(relative.trainedAssets)) {
+            relative.trainedAssets.forEach(asset => {
+                if (asset && typeof asset === 'object' && asset.content && asset.type === 'text' && asset.content.trim()) {
+                    memorySnippets.push(asset.content.trim());
+                }
+            });
+        }
+
+        // Build context-aware responses
+        let pool = [...AI_RESPONSES.general];
+
+        if (msg.includes('好') || msg.includes('嗨') || msg.includes('你好') || msg.includes('在吗')) {
+            pool = [...AI_RESPONSES.greeting, ...pool];
+        }
+        if (msg.includes('天气') || msg.includes('冷') || msg.includes('热')) {
+            pool = [...AI_RESPONSES.weather, ...pool];
+        }
+        if (msg.includes('工作') || msg.includes('加班') || msg.includes('累') || msg.includes('忙') || msg.includes('老板')) {
+            pool = [...AI_RESPONSES.work, ...pool];
+        }
+        if (msg.includes('爱') || msg.includes('对象') || msg.includes('男朋友') || msg.includes('女朋友') || msg.includes('结婚')) {
+            pool = [...AI_RESPONSES.love, ...pool];
+        }
+        if (msg.includes('生活') || msg.includes('人生') || msg.includes('意义') || msg.includes('迷茫')) {
+            pool = [...AI_RESPONSES.life, ...pool];
+        }
+        if (msg.includes('再见') || msg.includes('拜拜') || msg.includes('走了') || msg.includes('下次')) {
+            pool = [...AI_RESPONSES.goodbye, ...pool];
+        }
+
+        // Personalize with character prompt
+        if (prompt.includes('象棋') || prompt.includes('下棋')) {
+            pool = [...pool, "人生就像下棋，每步都要想清楚。", "想当年我下棋从来没输过，不过你爹倒是赢过我几回。"];
+        }
+        if (prompt.includes('教师') || prompt.includes('老师')) {
+            pool = [...pool, "做学问要踏实，不能投机取巧。", "教了一辈子书，最骄傲的就是看着你们一个个长大成材。"];
+        }
+        if (prompt.includes('奶奶') || prompt.includes('外婆') || prompt.includes('姥姥')) {
+            pool = [...pool, "小时候你最喜欢吃我做的红烧肉了。", "想吃什么，奶奶给你做。"];
+        }
+        if (prompt.includes('爷爷') || prompt.includes('外公') || prompt.includes('姥爷')) {
+            pool = [...pool, "来，让爷爷看看你最近又长高了没有。", "爷爷想跟你说啊，做人一定要正直。"];
+        }
+
+        // 留声记忆增强：从训练的留声内容中提取相关片段作为回复
+        if (memorySnippets.length > 0) {
+            memorySnippets.forEach(snippet => {
+                // 将留声内容句子拆分，筛选有意义的短句加入回复池
+                const sentences = snippet.split(/[。！？\n]/).map(s => s.trim()).filter(s => s.length > 5 && s.length < 80);
+                if (sentences.length > 0) {
+                    pool = [...pool, ...sentences];
+                }
+            });
+            // 如果用户问到"记得"、"以前"、"当年"等，优先用留声内容
+            if (msg.includes('记得') || msg.includes('以前') || msg.includes('当年') || msg.includes('小时候') || msg.includes('那时')) {
+                const memorySentences = memorySnippets.flatMap(s =>
+                    s.split(/[。！？\n]/).map(s => s.trim()).filter(s => s.length > 5 && s.length < 80)
+                );
+                if (memorySentences.length > 0) {
+                    pool = memorySentences;
+                }
+            }
+        }
+
+        const response = pool[Math.floor(Math.random() * pool.length)];
+        // Prepend name sometimes
+        if (Math.random() > 0.5) {
+            return `${name}说：${response}`;
+        }
+        return response;
+    }
+
+    // ==================== Utilities ====================
+    function toggleMsgPreview(id) {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const hidden = el.classList.contains('hidden');
+        el.classList.toggle('hidden', !hidden);
+        // Find the toggle button via data attribute or text
+        const container = el.closest('.bg-slate-800\\/50');
+        const btn = container ? container.querySelector(`button[onclick*="${id}"]`) : null;
+        if (btn) btn.textContent = hidden ? '收起' : '展开';
+    }
+
+    function uid() {
+        return 'id-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+    }
+
+    function renderIcons() {
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        } else {
+            setTimeout(renderIcons, 100);
+        }
+    }
+
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toast-container');
+        const toast = document.createElement('div');
+        const colors = {
+            info: 'bg-blue-600',
+            success: 'bg-emerald-600',
+            error: 'bg-red-600',
+            warning: 'bg-amber-600'
+        };
+        toast.className = `${colors[type] || colors.info} text-white px-4 py-2 rounded-full text-xs font-semibold shadow-lg toast-enter pointer-events-auto`;
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        setTimeout(() => {
+            toast.classList.replace('toast-enter', 'toast-exit');
+            setTimeout(() => toast.remove(), 300);
+        }, 2000);
+    }
+
+    function formatTime(ts) {
+        const now = Date.now();
+        const diff = now - ts;
+        const mins = Math.floor(diff / 60000);
+        const hours = Math.floor(diff / 3600000);
+        const days = Math.floor(diff / 86400000);
+
+        if (mins < 1) return '刚刚';
+        if (mins < 60) return `${mins}分钟前`;
+        if (hours < 24) return `${hours}小时前`;
+        if (days < 7) return `${days}天前`;
+        return new Date(ts).toLocaleDateString('zh-CN');
+    }
+
+    function formatFileSize(bytes) {
+        if (!bytes || bytes < 0) return '未知大小';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        let i = 0;
+        let size = bytes;
+        while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+        return size.toFixed(1) + ' ' + units[i];
+    }
+
+    function base64ToBlob(b64, mimeType) {
+        const byteChars = atob(b64.split(',')[1] || b64);
+        const byteNums = new Array(byteChars.length);
+        for (let i = 0; i < byteChars.length; i++) byteNums[i] = byteChars.charCodeAt(i);
+        return new Blob([new Uint8Array(byteNums)], { type: mimeType });
+    }
+
+    // ==================== Persistence ====================
+    function loadState() {
+        const saved = localStorage.getItem('timerecorder_v9');
+        if (saved) {
+            try {
+                const parsed = JSON.parse(saved);
+                // Merge with defaults for any missing keys
+                state = { ...JSON.parse(JSON.stringify(DEFAULT_STATE)), ...parsed };
+                // Ensure arrays exist
+                if (!Array.isArray(state.vaultItems)) state.vaultItems = [];
+                if (!Array.isArray(state.messages)) state.messages = [];
+                if (!Array.isArray(state.relatives)) state.relatives = [];
+            } catch (e) {
+                console.error('State load error, using defaults:', e);
+                state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+            }
+        }
+    }
+
+    function saveState() {
+        try {
+            localStorage.setItem('timerecorder_v9', JSON.stringify(state));
+        } catch (e) {
+            showToast('存储空间不足，请清理一些数据', 'warning');
+        }
+    }
+
+    async function loadRemoteData() {
+        if (!getToken()) return;
+        try {
+            const [assetsData, messagesData, relativesData] = await Promise.all([
+                api('/api/assets').catch(() => []),
+                api('/api/messages').catch(() => []),
+                api('/api/relatives').catch(() => [])
+            ]);
+            // Handle both array and { assets: [...] } response formats
+            const assetsArr = Array.isArray(assetsData) ? assetsData : (assetsData.assets || []);
+            const messagesArr = Array.isArray(messagesData) ? messagesData : (messagesData.messages || []);
+            const relativesArr = Array.isArray(relativesData) ? relativesData : (relativesData.relatives || []);
+            state.vaultItems = assetsArr.map(mapAsset);
+            state.messages = messagesArr.map(mapMessage);
+            state.relatives = relativesArr.map(mapRelative);
+            // Load chat history for each relative
+            for (const rel of state.relatives) {
+                try {
+                    const chatData = await api(`/api/relatives/${rel.id}/chat`);
+                    const chatArr = Array.isArray(chatData) ? chatData : (chatData.messages || []);
+                    rel.chatHistory = chatArr.map(c => ({
+                        role: c.role, content: c.content, time: new Date(c.created_at).getTime()
+                    }));
+                } catch { rel.chatHistory = []; }
+            }
+        } catch (e) {
+            console.error('Remote data load failed:', e);
+        }
+    }
+
+    async function tryRestoreSession() {
+        const token = getToken();
+        if (!token) return false;
+        try {
+            const user = await api('/api/auth/me');
+            state.user = {
+                account: user.email,
+                username: user.name || user.email.split('@')[0],
+                uid: user.id.slice(0, 10).toUpperCase(),
+                joinDate: new Date(user.created_at).toLocaleDateString('zh-CN'),
+            };
+            await loadRemoteData();
+            return true;
+        } catch {
+            setToken(null);
+            return false;
+        }
+    }
+
+    // ==================== UI Rendering ====================
+    function updateHomeActivity() {
+        const feed = document.getElementById('home-activity-feed');
+        const empty = document.getElementById('home-empty-state');
+        if (!feed || !empty) return;
+
+        // Collect all activities
+        let activities = [];
+
+        state.messages.forEach(m => {
+            activities.push({
+                type: 'message',
+                icon: m.type === 'audio' ? 'mic' : m.type === 'video' ? 'video' : 'file-text',
+                color: m.type === 'audio' ? 'purple' : m.type === 'video' ? 'red' : 'purple',
+                title: '最新留言',
+                subtitle: m.title,
+                time: m.date,
+                onClick: "switchTab('echo')"
+            });
+        });
+
+        state.vaultItems.forEach(item => {
+            activities.push({
+                type: 'vault',
+                icon: item.type === 'image' ? 'image' : item.type === 'document' ? 'file-text' : 'wallet',
+                color: 'blue',
+                title: '资产更新',
+                subtitle: item.title,
+                time: item.date,
+                onClick: "switchTab('vault')"
+            });
+        });
+
+        state.relatives.forEach(rel => {
+            activities.push({
+                type: 'relative',
+                icon: 'sparkles',
+                color: 'indigo',
+                title: 'AI亲人',
+                subtitle: `${rel.name} - ${rel.isReady ? '训练就绪' : '构建中'}`,
+                time: Date.now() - 86400000,
+                onClick: "switchTab('ai')"
+            });
+        });
+
+        // Sort by time descending
+        activities.sort((a, b) => b.time - a.time);
+
+        // Limit to 5
+        activities = activities.slice(0, 5);
+
+        if (activities.length === 0) {
+            feed.innerHTML = '';
+            empty.classList.remove('hidden');
+        } else {
+            empty.classList.add('hidden');
+            feed.innerHTML = activities.map(a => {
+                const borderColor = {
+                    purple: 'border-l-purple-500',
+                    blue: 'border-l-blue-500',
+                    red: 'border-l-red-500',
+                    indigo: 'border-l-indigo-500'
+                };
+                const bgColor = {
+                    purple: 'bg-purple-950/50 text-purple-400 border-purple-800/30',
+                    blue: 'bg-blue-950/50 text-blue-400 border-blue-800/30',
+                    red: 'bg-red-950/50 text-red-400 border-red-800/30',
+                    indigo: 'bg-indigo-950/50 text-indigo-400 border-indigo-800/30'
+                };
+                return `
+                    <div onclick="${a.onClick}" class="glass-card p-4 rounded-2xl flex items-center space-x-4 border-l-4 ${borderColor[a.color]} shadow-sm cursor-pointer">
+                        <div class="w-10 h-10 ${bgColor[a.color]} rounded-full flex items-center justify-center border">
+                            <i data-lucide="${a.icon}" class="w-5 h-5"></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <h4 class="text-sm font-bold text-slate-200 truncate">${a.title}</h4>
+                            <p class="text-xs text-slate-400 truncate">${a.subtitle}</p>
+                        </div>
+                        <span class="text-[10px] text-slate-500 shrink-0">${formatTime(a.time)}</span>
+                    </div>
+                `;
+            }).join('');
+        }
+        renderIcons();
+    }
+
+    function updateUI() {
+        // Vault
+        const vaultList = document.getElementById('vault-list');
+        if (vaultList) {
+            vaultList.innerHTML = state.vaultItems.length === 0 ?
+                `<div class="text-center py-16 text-slate-500 text-sm">
+                    <i data-lucide="archive" class="w-10 h-10 mx-auto mb-3 text-slate-600"></i>
+                    <p>点击上方 "+" 开始整理您的数字资产</p>
+                </div>` :
+                state.vaultItems.map((item, idx) => {
+                    let icon = 'lock';
+                    let typeLabel = '核心凭证';
+                    let subtitle = item.recipient ? `接收人: ${item.recipient}` : '未指定接收人';
+
+                    if (item.type === 'image') {
+                        icon = 'image';
+                        typeLabel = '图片凭证';
+                        subtitle = item.fileName ? `📎 ${item.fileName}` : '图片已加密';
+                    } else if (item.type === 'document') {
+                        icon = 'file-text';
+                        typeLabel = '文档合同';
+                        subtitle = item.fileName ? `📎 ${item.fileName}` : '文档已加密';
+                    }
+
+                    return `
+                        <div onclick="viewAssetDetail('${item.id}')" class="glass-card p-4 rounded-2xl flex items-center space-x-4 shadow-sm border border-slate-800 cursor-pointer hover:border-indigo-500/40 transition-all active:scale-[0.98]">
+                            <div class="w-10 h-10 bg-slate-800 rounded-xl flex items-center justify-center text-slate-300 shrink-0">
+                                <i data-lucide="${icon}" class="w-5 h-5"></i>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h4 class="text-sm font-bold text-slate-200 truncate">${item.title}</h4>
+                                <p class="text-[10px] text-slate-400 font-semibold tracking-wide truncate">${typeLabel} · ${subtitle}</p>
+                            </div>
+                            <button onclick="event.stopPropagation(); deleteItem('vaultItems', '${item.id}')" class="text-slate-500 hover:text-red-400 transition-all shrink-0 p-1">
+                                <i data-lucide="trash-2" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+        }
+
+        // Echo
+        const echoGrid = document.getElementById('echo-grid');
+        if (echoGrid) {
+            if (state.messages.length === 0) {
+                echoGrid.innerHTML = `
+                    <div class="col-span-2 text-center py-16 text-slate-500 text-sm">
+                        <i data-lucide="mic" class="w-10 h-10 mx-auto mb-3 text-slate-600"></i>
+                        <p>点击上方 "+" 创建您的第一封留声舱</p>
+                    </div>`;
+            } else {
+                echoGrid.innerHTML = state.messages.map((m) => {
+                    let icon = 'file-text';
+                    let badgeColor = 'bg-purple-950/50 text-purple-300 border-purple-800/30';
+                    let mediaTypeText = '纯文字';
+
+                    if (m.type === 'audio') {
+                        icon = 'mic';
+                        badgeColor = 'bg-blue-950/50 text-blue-300 border-blue-800/30';
+                        mediaTypeText = '语音克隆';
+                    } else if (m.type === 'video') {
+                        icon = 'video';
+                        badgeColor = 'bg-red-950/50 text-red-300 border-red-800/30';
+                        mediaTypeText = '3D神态';
+                    }
+
+                    let timerLabel = '';
+                    if (m.sendType === 'death_immediate') {
+                        timerLabel = '⌛ 确认离世后发送';
+                    } else if (m.sendType === 'fixed_date') {
+                        timerLabel = `⏰ 定时: ${m.sendTime}`;
+                    } else if (m.sendType === 'death_delay') {
+                        timerLabel = `⏳ 离世延后 ${m.sendTime}`;
+                    }
+
+                    return `
+                        <div onclick="openMessageDetail('${m.id}')" class="glass-card p-4 rounded-3xl aspect-square flex flex-col justify-between shadow-sm border border-slate-800 hover:border-purple-500/40 transition-all relative group cursor-pointer active:scale-[0.97]">
+                            <button onclick="event.stopPropagation(); deleteItem('messages', '${m.id}')" class="absolute top-3 right-3 text-slate-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                            </button>
+                            <div class="flex items-center justify-between">
+                                <div class="w-8 h-8 bg-slate-900 rounded-xl flex items-center justify-center text-slate-400 border border-slate-800">
+                                    <i data-lucide="${icon}" class="w-4 h-4"></i>
+                                </div>
+                                <span class="text-[9px] px-2 py-0.5 rounded-full border ${badgeColor}">${mediaTypeText}</span>
+                            </div>
+                            <div>
+                                <p class="text-[10px] text-slate-400">致：${m.recipient}</p>
+                                <p class="text-[9px] text-slate-500 truncate mb-1">📬 ${m.contact || '无联系方式'}</p>
+                                <h4 class="text-xs font-bold text-slate-200 leading-tight truncate mb-1">${m.title}</h4>
+                                <span class="text-[9px] text-purple-400 font-semibold block">${timerLabel}</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        // AI Relatives
+        const relativeProfiles = document.getElementById('relative-profiles');
+        if (relativeProfiles) {
+            relativeProfiles.innerHTML = state.relatives.length === 0 ?
+                `<div class="text-center py-16 text-slate-500 text-sm">
+                    <i data-lucide="sparkles" class="w-10 h-10 mx-auto mb-3 text-slate-600"></i>
+                    <p>上传照片、声音等，重建您所思念的亲人</p>
+                </div>` :
+                state.relatives.map((rel) => {
+                    const trainingAssetsText = rel.trainedAssets && rel.trainedAssets.length > 0 ?
+                        `已灌输源：${rel.trainedAssets.map(a => typeof a === 'object' ? a.title : a).join('，')}` :
+                        '基础模型已加载';
+
+                    const photoHtml = rel.photo ?
+                        `<img src="${rel.photo}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'" class="w-12 h-12 rounded-full object-cover border border-slate-700">
+                         <div class="w-12 h-12 rounded-full bg-indigo-900/50 border border-slate-700 items-center justify-center text-indigo-400 hidden">
+                            <i data-lucide="user" class="w-6 h-6"></i>
+                         </div>` :
+                        `<div class="w-12 h-12 rounded-full bg-indigo-900/50 border border-slate-700 flex items-center justify-center text-indigo-400">
+                            <i data-lucide="user" class="w-6 h-6"></i>
+                         </div>`;
+
+                    return `
+                    <div class="glass-card p-5 rounded-3xl border border-slate-800 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-3">
+                                ${photoHtml}
+                                <div>
+                                    <h3 class="text-base font-bold text-slate-200">${rel.name} <span class="text-xs font-normal text-slate-400">(${rel.relation})</span></h3>
+                                    <p class="text-xs ${rel.isReady ? 'text-indigo-400' : 'text-amber-400'}">状态：${rel.isReady ? '训练就绪' : '脑科学神经网络重构中'}</p>
+                                </div>
+                            </div>
+                            <button onclick="startCompanionChat('${rel.id}')" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-xs font-bold rounded-xl transition-all active:scale-95 shrink-0">
+                                思念对话
+                            </button>
+                        </div>
+
+                        <div class="p-3 bg-slate-900/50 rounded-2xl border border-slate-800/80 text-[10px] text-slate-400">
+                            <div class="flex items-center space-x-1.5 text-indigo-300 font-semibold mb-1">
+                                <i data-lucide="database" class="w-3.5 h-3.5"></i>
+                                <span>深度学习克隆模型</span>
+                            </div>
+                            <p class="truncate">${trainingAssetsText}</p>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-3 pt-2">
+                            <button onclick="launchHologram('${rel.id}')" class="py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center space-x-2 text-xs font-semibold text-slate-200 border border-slate-700/50 active:scale-95 transition-all">
+                                <i data-lucide="smartphone" class="w-4 h-4 text-blue-400"></i>
+                                <span>全息投影</span>
+                            </button>
+                            <button onclick="launchVR('${rel.id}')" class="py-2.5 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center justify-center space-x-2 text-xs font-semibold text-slate-200 border border-slate-700/50 active:scale-95 transition-all">
+                                <i data-lucide="glasses" class="w-4 h-4 text-purple-400"></i>
+                                <span>VR眼镜呈现</span>
+                            </button>
+                        </div>
+                    </div>
+                `}).join('');
+        }
+
+        // Profile
+        const profileContent = document.getElementById('profile-content');
+        if (profileContent) {
+            if (state.user) {
+                profileContent.innerHTML = `
+                    <div class="glass-card p-6 rounded-[32px] flex items-center space-x-4 border border-slate-800 shadow-sm">
+                        <div class="w-16 h-16 bg-gradient-to-tr from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white text-2xl font-bold shrink-0">
+                            ${(state.user.username || 'U').charAt(0).toUpperCase()}
+                        </div>
+                        <div class="min-w-0">
+                            <h3 class="text-lg font-bold text-slate-200 truncate">${state.user.username || '测试账号'}</h3>
+                            <p class="text-xs text-slate-400 truncate">账号: ${state.user.account}</p>
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        <div class="glass-card p-4 rounded-2xl flex justify-between items-center border border-slate-800 shadow-sm">
+                            <span class="text-sm text-slate-400">加密UID</span>
+                            <span class="text-sm font-medium text-slate-200">${state.user.uid}</span>
+                        </div>
+                        <div class="glass-card p-4 rounded-2xl flex justify-between items-center border border-slate-800 shadow-sm">
+                            <span class="text-sm text-slate-400">加入时间</span>
+                            <span class="text-sm font-medium text-slate-200">${state.user.joinDate}</span>
+                        </div>
+                        <div class="glass-card p-4 rounded-2xl flex justify-between items-center border border-slate-800 shadow-sm">
+                            <span class="text-sm text-slate-400">状态检查周期</span>
+                            <span class="text-sm font-medium text-blue-400">每 ${state.checkIntervalDays} 天</span>
+                        </div>
+                        <div class="glass-card p-4 rounded-2xl flex justify-between items-center border border-slate-800 shadow-sm">
+                            <span class="text-sm text-slate-400">资产库条目</span>
+                            <span class="text-sm font-medium text-slate-200">${state.vaultItems.length} 项</span>
+                        </div>
+                        <div class="glass-card p-4 rounded-2xl flex justify-between items-center border border-slate-800 shadow-sm">
+                            <span class="text-sm text-slate-400">留声舱数量</span>
+                            <span class="text-sm font-medium text-slate-200">${state.messages.length} 封</span>
+                        </div>
+                        <div class="glass-card p-4 rounded-2xl flex justify-between items-center border border-slate-800 shadow-sm">
+                            <span class="text-sm text-slate-400">AI亲人</span>
+                            <span class="text-sm font-medium text-slate-200">${state.relatives.length} 位</span>
+                        </div>
+                    </div>
+                    <button onclick="handleLogout()" class="w-full py-4 bg-slate-800/50 hover:bg-red-950/20 text-red-400 border border-red-900/20 rounded-2xl font-bold active:scale-95 transition-all">
+                        退出登录
+                    </button>
+                `;
+            } else {
+                profileContent.innerHTML = `
+                    <div class="flex flex-col items-center justify-center py-20 space-y-6">
+                        <div class="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center text-slate-600 border border-slate-700/50">
+                            <i data-lucide="user" class="w-10 h-10"></i>
+                        </div>
+                        <div class="text-center">
+                            <h3 class="text-lg font-bold text-slate-300">尚未登录</h3>
+                            <p class="text-sm text-slate-500 mt-1">请先验证，开启自主身后资产与温情委托</p>
+                        </div>
+                        <button onclick="openModal('auth')" class="px-12 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-full font-bold shadow-xl animate-bounce active:scale-95 transition-all">
+                            快捷验证登录
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        updateHomeActivity();
+        renderIcons();
+    }
+
+    // ==================== Navigation ====================
+    function switchTab(tab) {
+        if (tab !== 'home' && !state.user) {
+            openModal('auth');
+            return;
+        }
+
+        const tabs = ['home', 'vault', 'echo', 'ai', 'profile'];
+        tabs.forEach(t => {
+            const el = document.getElementById(`tab-${t}`);
+            if (el) el.classList.add('hidden');
+            const nav = document.getElementById(`nav-${t}`);
+            if (nav) {
+                nav.classList.remove('nav-active');
+                nav.classList.add('text-slate-400');
+            }
+        });
+
+        const tabEl = document.getElementById(`tab-${tab}`);
+        if (tabEl) {
+            tabEl.classList.remove('hidden');
+            // Trigger reflow for animation
+            void tabEl.offsetWidth;
+            tabEl.classList.add('animate-fade');
+        }
+        const navEl = document.getElementById(`nav-${tab}`);
+        if (navEl) {
+            navEl.classList.add('nav-active');
+            navEl.classList.remove('text-slate-400');
+        }
+
+        if (tab === 'home') updateHomeActivity();
+        renderIcons();
+    }
+
+    // ==================== Modal Management ====================
+    function openModal(type) {
+        const overlay = document.getElementById('modal-overlay');
+        const content = document.getElementById('modal-content');
+        overlay.classList.remove('hidden');
+        content.classList.add('animate-slide-up');
+
+        const closeBtn = `<button onclick="closeModal()" class="absolute right-6 top-6 w-8 h-8 flex items-center justify-center text-slate-400 bg-slate-800/85 rounded-full hover:bg-slate-700 z-10 border border-slate-700 active:scale-90 transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>`;
+
+        switch (type) {
+            case 'auth':
+                showAuthForm('login');
+                break;
+            case 'addItem':
+                showAddItemForm(closeBtn);
+                break;
+            case 'addMessage':
+                showAddMessageForm(closeBtn);
+                break;
+            case 'addRelative':
+                showAddRelativeForm(closeBtn);
+                break;
+            case 'settings':
+                showSettingsForm(closeBtn);
+                break;
+        }
+        renderIcons();
+    }
+
+    function closeModal() {
+        const overlay = document.getElementById('modal-overlay');
+        const content = document.getElementById('modal-content');
+        content.classList.remove('animate-slide-up');
+        overlay.classList.add('hidden');
+        if (mockRecordingTimer) {
+            clearInterval(mockRecordingTimer);
+            mockRecordingTimer = null;
+        }
+        audioIsRecording = false;
+        videoIsRecording = false;
+        if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+        mediaRecorderBlob = null;
+        uploadedImageData = null;
+        uploadedDocName = null;
+    }
+
+    // ==================== Message Detail ====================
+    function findMessage(id) {
+        return state.messages.find(m => m.id === id);
+    }
+
+    function openMessageDetail(id) {
+        const msg = findMessage(id);
+        if (!msg) return;
+
+        const overlay = document.getElementById('modal-overlay');
+        const content = document.getElementById('modal-content');
+        overlay.classList.remove('hidden');
+        content.classList.add('animate-slide-up');
+        showMessageDetailView(msg);
+        renderIcons();
+    }
+
+    function showMessageDetailView(msg) {
+        const content = document.getElementById('modal-content');
+
+        const typeInfo = {
+            text: { label: '纯文字信件', icon: 'file-text', color: 'purple' },
+            audio: { label: '语音克隆', icon: 'mic', color: 'blue' },
+            video: { label: '3D神态摄制', icon: 'video', color: 'red' }
+        };
+        const ti = typeInfo[msg.type] || typeInfo.text;
+
+        let sendInfo = '';
+        if (msg.sendType === 'death_immediate') {
+            sendInfo = '⌛ 确认离世后立即分发发送';
+        } else if (msg.sendType === 'fixed_date') {
+            sendInfo = `⏰ 定时发送：${msg.sendTime}`;
+        } else if (msg.sendType === 'death_delay') {
+            sendInfo = `⏳ 离世后延后 ${msg.sendTime} 发送`;
+        }
+
+        const closeBtn = `<button onclick="closeModal()" class="absolute right-6 top-6 w-8 h-8 flex items-center justify-center text-slate-400 bg-slate-800/85 rounded-full hover:bg-slate-700 z-10 border border-slate-700 active:scale-90 transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>`;
+
+        content.innerHTML = closeBtn + `
+            <div class="space-y-5 pt-2">
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 rounded-full text-[9px] font-bold border bg-${ti.color}-950/50 text-${ti.color}-300 border-${ti.color}-800/30">
+                        ${ti.label}
+                    </span>
+                    <span class="text-[10px] text-slate-500">${formatTime(msg.date)}</span>
+                </div>
+
+                <h2 class="text-xl font-bold text-slate-100 leading-snug">${escapeHtml(msg.title)}</h2>
+
+                <div class="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] text-slate-400 uppercase tracking-widest">收件人信息</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="user" class="w-4 h-4 text-slate-500"></i>
+                        <span class="text-sm font-semibold text-slate-200">${escapeHtml(msg.recipient)}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="mail" class="w-4 h-4 text-slate-500"></i>
+                        <span class="text-xs text-slate-400">${escapeHtml(msg.contact || '无联系方式')}</span>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-2">
+                    <span class="text-[10px] text-indigo-300 uppercase tracking-widest block">分发设定</span>
+                    <p class="text-sm text-slate-200 font-medium">${sendInfo}</p>
+                </div>
+
+                <div class="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-2">
+                    <span class="text-[10px] text-slate-400 uppercase tracking-widest block">内容正文</span>
+                    <div class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto no-scrollbar">
+                        ${escapeHtml(msg.content)}
+                    </div>
+                </div>
+
+                <div class="flex space-x-3 pt-2">
+                    <button onclick="event.stopPropagation(); showMessageEditForm('${msg.id}')" class="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center space-x-2">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        <span>编辑修改</span>
+                    </button>
+                    <button onclick="event.stopPropagation(); deleteMessageFromDetail('${msg.id}')" class="py-3.5 px-5 bg-slate-800/50 hover:bg-red-950/20 text-red-400 border border-red-900/20 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center space-x-2">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span>删除</span>
+                    </button>
+                </div>
+            </div>
+        `;
+        renderIcons();
+    }
+
+    function showMessageEditForm(msgId) {
+        const msg = findMessage(msgId);
+        if (!msg) return;
+
+        const content = document.getElementById('modal-content');
+
+        const closeBtn = `<button onclick="showMessageDetailView(findMessage('${msgId}'))" class="absolute right-6 top-6 w-8 h-8 flex items-center justify-center text-slate-400 bg-slate-800/85 rounded-full hover:bg-slate-700 z-10 border border-slate-700 active:scale-90 transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>`;
+
+        const sendTypeOptions = [
+            { value: 'death_immediate', label: '⌛ 确认离世后立即分发发送' },
+            { value: 'fixed_date', label: '⏰ 指定未来具体日期 定时主动发送' },
+            { value: 'death_delay', label: '⏳ 确认离世后延后定时发送' }
+        ];
+
+        let sendTimeField = '';
+        if (msg.sendType === 'fixed_date') {
+            sendTimeField = `<div id="edit-send-time-container">
+                <label class="text-[9px] text-slate-400 block mb-1">指定具体发送日期</label>
+                <input type="date" id="edit-send-time" value="${msg.sendTime || ''}" class="w-full p-3 bg-slate-800 border-none rounded-xl text-xs text-white focus:ring-1 focus:ring-purple-500 outline-none">
+            </div>`;
+        } else if (msg.sendType === 'death_delay') {
+            const delayOptions = ['1个月后', '3个月后', '1年后', '3年后', '5年后'];
+            sendTimeField = `<div id="edit-send-time-container">
+                <label class="text-[9px] text-slate-400 block mb-1">延后周期</label>
+                <select id="edit-send-time" class="w-full p-3 bg-slate-800 border-none rounded-xl text-xs text-slate-200 outline-none">
+                    ${delayOptions.map(d => `<option value="${d}" ${msg.sendTime === d ? 'selected' : ''}>离世 ${d}</option>`).join('')}
+                </select>
+            </div>`;
+        } else {
+            // death_immediate - always include empty container for dynamic switching
+            sendTimeField = `<div id="edit-send-time-container"></div>`;
+        }
+
+        content.innerHTML = closeBtn + `
+            <div class="space-y-5 pt-2">
+                <h3 class="text-lg font-bold text-slate-200">编辑留声舱</h3>
+
+                <div>
+                    <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">留声标题</label>
+                    <input id="edit-title" type="text" value="${escapeHtml(msg.title)}" class="w-full p-3 bg-slate-800 border-none rounded-xl text-sm text-white focus:ring-1 focus:ring-purple-500 outline-none">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">收件人称呼</label>
+                        <input id="edit-recipient" type="text" value="${escapeHtml(msg.recipient)}" class="w-full p-3 bg-slate-800 border-none rounded-xl text-sm text-white focus:ring-1 focus:ring-purple-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">联系方式</label>
+                        <input id="edit-contact" type="text" value="${escapeHtml(msg.contact || '')}" placeholder="邮箱/手机" class="w-full p-3 bg-slate-800 border-none rounded-xl text-sm text-white focus:ring-1 focus:ring-purple-500 outline-none">
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
+                    <label class="text-[10px] text-indigo-300 font-bold uppercase tracking-widest block">分发时机</label>
+                    <select id="edit-send-type" onchange="toggleEditSendTime()" class="w-full p-3 bg-slate-800 border-none rounded-xl text-xs text-slate-200 outline-none">
+                        ${sendTypeOptions.map(o => `<option value="${o.value}" ${msg.sendType === o.value ? 'selected' : ''}>${o.label}</option>`).join('')}
+                    </select>
+                    ${sendTimeField}
+                </div>
+
+                <div>
+                    <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">信件正文</label>
+                    <textarea id="edit-content" class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm text-white h-36 focus:ring-1 focus:ring-purple-500 outline-none resize-none">${escapeHtml(msg.content)}</textarea>
+                </div>
+
+                <div class="flex space-x-3 pt-2">
+                    <button onclick="saveMessageEdit('${msgId}')" class="flex-1 py-3.5 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold text-sm active:scale-95 transition-all">
+                        保存修改
+                    </button>
+                    <button onclick="showMessageDetailView(findMessage('${msgId}'))" class="py-3.5 px-5 bg-slate-800/50 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-2xl font-bold text-sm active:scale-95 transition-all">
+                        取消
+                    </button>
+                </div>
+            </div>
+        `;
+        renderIcons();
+    }
+
+    function toggleEditSendTime() {
+        const sendType = document.getElementById('edit-send-type')?.value;
+        const container = document.getElementById('edit-send-time-container');
+        if (!container) return;
+
+        if (sendType === 'death_immediate') {
+            container.innerHTML = '';
+        } else if (sendType === 'fixed_date') {
+            container.innerHTML = `
+                <label class="text-[9px] text-slate-400 block mb-1">指定具体发送日期</label>
+                <input type="date" id="edit-send-time" class="w-full p-3 bg-slate-800 border-none rounded-xl text-xs text-white focus:ring-1 focus:ring-purple-500 outline-none">
+            `;
+        } else if (sendType === 'death_delay') {
+            container.innerHTML = `
+                <label class="text-[9px] text-slate-400 block mb-1">延后周期</label>
+                <select id="edit-send-time" class="w-full p-3 bg-slate-800 border-none rounded-xl text-xs text-slate-200 outline-none">
+                    <option value="1个月后">离世 1 个月后</option>
+                    <option value="3个月后">离世 3 个月后</option>
+                    <option value="1年后">离世 1 周年祭</option>
+                    <option value="3年后">离世 3 周年祭</option>
+                    <option value="5年后">离世 5 周年祭</option>
+                </select>
+            `;
+        }
+    }
+
+    async function saveMessageEdit(msgId) {
+        const title = document.getElementById('edit-title')?.value?.trim();
+        const recipient = document.getElementById('edit-recipient')?.value?.trim();
+        const contact = document.getElementById('edit-contact')?.value?.trim() || '';
+        const sendType = document.getElementById('edit-send-type')?.value || 'death_immediate';
+        const contentVal = document.getElementById('edit-content')?.value?.trim();
+
+        if (!title) { showToast('请输入留声标题', 'warning'); return; }
+        if (!recipient) { showToast('请输入收件人称呼', 'warning'); return; }
+        if (!contentVal) { showToast('请输入信件内容', 'warning'); return; }
+
+        let sendTime = '';
+        if (sendType !== 'death_immediate') {
+            sendTime = document.getElementById('edit-send-time')?.value || '';
+        }
+
+        try {
+            await api(`/api/messages/${msgId}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    title, recipient, contact,
+                    content: encryptContent(contentVal),
+                    send_type: sendType,
+                    send_time: sendTime
+                })
+            });
+            await loadRemoteData();
+            updateUI();
+            showToast('留声舱已更新', 'success');
+
+            // Return to detail view
+            const updatedMsg = state.messages.find(m => m.id === msgId);
+            if (updatedMsg) showMessageDetailView(updatedMsg);
+        } catch (e) {
+            showToast('更新失败: ' + e.message, 'error');
+        }
+    }
+
+    async function deleteMessageFromDetail(msgId) {
+        if (!confirm('确定要永久删除该留声舱吗？此操作不可撤销。')) return;
+
+        try {
+            await api(`/api/messages/${msgId}`, { method: 'DELETE' });
+            await loadRemoteData();
+            updateUI();
+            closeModal();
+            showToast('留声舱已删除', 'success');
+        } catch (e) {
+            showToast('删除失败: ' + e.message, 'error');
+        }
+    }
+
+    // ==================== Auth ====================
+    function showAuthForm(mode) {
+        const content = document.getElementById('modal-content');
+        const closeBtn = `<button onclick="closeModal()" class="absolute right-6 top-6 w-8 h-8 flex items-center justify-center text-slate-400 bg-slate-800 rounded-full hover:bg-slate-700 z-10 border border-slate-700 active:scale-90 transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>`;
+
+        const isLogin = mode === 'login';
+        content.innerHTML = closeBtn + `
+            <div class="space-y-8 pt-4">
+                <div>
+                    <h3 class="text-2xl font-bold text-slate-100">${isLogin ? '欢迎登录时光留声机' : '开启数据守护'}</h3>
+                    <p class="text-xs text-slate-400 mt-2">输入邮箱和密码进行${isLogin ? '登录' : '注册'}，数据端到端加密保护。</p>
+                </div>
+                <div class="space-y-4">
+                    <input id="auth-email" type="email" placeholder="邮箱地址" class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none" autocomplete="email">
+                    <input id="auth-password" type="password" placeholder="密码（至少6位）" class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none" autocomplete="${isLogin ? 'current-password' : 'new-password'}">
+                    ${!isLogin ? '<input id="auth-username" type="text" placeholder="您的姓名/称呼" class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none">' : ''}
+                </div>
+                <button onclick="handleAuthSubmit('${mode}')" class="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/10 active:scale-95 transition-all">
+                    ${isLogin ? '安全登录' : '立即激活注册'}
+                </button>
+                <div class="text-center pt-1">
+                    <button onclick="quickLogin()" class="text-xs text-blue-400 font-bold hover:underline">⚡ 免输入！一键体验</button>
+                </div>
+                ${isLogin ? `
+                <div class="text-center">
+                    <button onclick="showAuthForm('register')" class="text-xs text-slate-400 hover:text-slate-300">还没有账号？立即注册</button>
+                </div>` : `
+                <div class="text-center">
+                    <button onclick="showAuthForm('login')" class="text-xs text-slate-400 hover:text-slate-300">已有账号？立即登录</button>
+                </div>`}
+            </div>
+        `;
+        renderIcons();
+    }
+
+    function startCountdown() {
+        // Deprecated: SMS verification removed. Now uses email+password auth.
+    }
+
+    async function handleAuthSubmit(mode) {
+        const email = document.getElementById('auth-email')?.value?.trim();
+        const password = document.getElementById('auth-password')?.value;
+        const usernameEl = document.getElementById('auth-username');
+        const name = usernameEl ? usernameEl.value?.trim() : '';
+
+        if (!email || !password) {
+            showToast('请填写邮箱和密码', 'warning');
+            return;
+        }
+        if (password.length < 6) {
+            showToast('密码至少6位', 'warning');
+            return;
+        }
+
+        const isRegister = mode === 'register';
+        if (isRegister && !name) {
+            showToast('请输入您的姓名', 'warning');
+            return;
+        }
+
+        try {
+            const endpoint = isRegister ? '/api/auth/register' : '/api/auth/login';
+            const body = isRegister ? { email, password, name } : { email, password };
+            const data = await api(endpoint, { method: 'POST', body: JSON.stringify(body) });
+
+            setToken(data.token);
+            // Store encryption key derived from password
+            setEncKey(deriveKey(password));
+
+            state.user = {
+                account: data.user.email,
+                username: data.user.name || email.split('@')[0],
+                uid: data.user.id.slice(0, 10).toUpperCase(),
+                joinDate: new Date(data.user.created_at).toLocaleDateString('zh-CN'),
+            };
+
+            // Load data from server
+            await loadRemoteData();
+
+            updateUI();
+            closeModal();
+            showToast(`欢迎回来，${state.user.username}`, 'success');
+            switchTab('profile');
+        } catch (e) {
+            showToast(e.message, 'error');
+        }
+    }
+
+    async function quickLogin() {
+        const demoEmail = 'demo@timerecorder.com';
+        const demoPass = 'demo123456';
+        try {
+            // Try login first
+            let data = await api('/api/auth/login', { method: 'POST', body: JSON.stringify({ email: demoEmail, password: demoPass }) });
+            setToken(data.token);
+            setEncKey(deriveKey(demoPass));
+            state.user = {
+                account: data.user.email,
+                username: data.user.name || '传承体验官',
+                uid: data.user.id.slice(0, 10).toUpperCase(),
+                joinDate: new Date(data.user.created_at).toLocaleDateString('zh-CN'),
+            };
+        } catch {
+            // Register if not exists
+            try {
+                const data = await api('/api/auth/register', { method: 'POST', body: JSON.stringify({ email: demoEmail, password: demoPass, name: '传承体验官' }) });
+                setToken(data.token);
+                setEncKey(deriveKey(demoPass));
+                state.user = {
+                    account: data.user.email,
+                    username: '传承体验官',
+                    uid: data.user.id.slice(0, 10).toUpperCase(),
+                    joinDate: new Date(data.user.created_at).toLocaleDateString('zh-CN'),
+                };
+            } catch (e2) {
+                showToast('演示账号创建失败: ' + e2.message, 'error');
+                return;
+            }
+        }
+
+        await loadRemoteData();
+        updateUI();
+        closeModal();
+        showToast('已进入演示模式', 'success');
+        switchTab('profile');
+    }
+
+    function handleLogout() {
+        if (confirm('确定要退出登录吗？')) {
+            state.user = null;
+            setToken(null);
+            setEncKey(null);
+            state.vaultItems = [];
+            state.messages = [];
+            state.relatives = [];
+            updateUI();
+            switchTab('home');
+            showToast('已安全退出');
+        }
+    }
+
+    // ==================== Asset Detail ====================
+    function viewAssetDetail(id) {
+        const item = state.vaultItems.find(v => v.id === id);
+        if (!item) return;
+
+        const overlay = document.getElementById('modal-overlay');
+        const content = document.getElementById('modal-content');
+        overlay.classList.remove('hidden');
+        content.classList.add('animate-slide-up');
+        showAssetDetailView(item);
+        renderIcons();
+    }
+
+    function showAssetDetailView(item) {
+        const content = document.getElementById('modal-content');
+        const typeInfo = {
+            text: { label: '核心凭证', icon: 'lock', color: 'blue' },
+            image: { label: '图片凭证', icon: 'image', color: 'green' },
+            document: { label: '文档合同', icon: 'file-text', color: 'amber' }
+        };
+        const ti = typeInfo[item.type] || typeInfo.text;
+
+        const closeBtn = `<button onclick="closeModal()" class="absolute right-6 top-6 w-8 h-8 flex items-center justify-center text-slate-400 bg-slate-800/85 rounded-full hover:bg-slate-700 z-10 border border-slate-700 active:scale-90 transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>`;
+
+        const fileNameRow = item.fileName ? `
+            <div class="flex items-center space-x-2">
+                <i data-lucide="paperclip" class="w-4 h-4 text-slate-500"></i>
+                <span class="text-xs text-slate-400">${escapeHtml(item.fileName)}${item.fileSize ? ' (' + formatFileSize(item.fileSize) + ')' : ''}</span>
+            </div>` : '';
+
+        const contentBlock = item.type === 'text' ? `
+            <div class="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-2">
+                <span class="text-[10px] text-slate-400 uppercase tracking-widest block">凭证内容</span>
+                <div class="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap max-h-60 overflow-y-auto no-scrollbar">
+                    ${escapeHtml(item.content)}
+                </div>
+            </div>` : `
+            <div class="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-2">
+                <span class="text-[10px] text-slate-400 uppercase tracking-widest block">凭证附件</span>
+                <p class="text-sm text-slate-300">${escapeHtml(item.content)}</p>
+            </div>`;
+
+        content.innerHTML = closeBtn + `
+            <div class="space-y-5 pt-2">
+                <div class="flex items-center space-x-2">
+                    <span class="px-2 py-1 rounded-full text-[9px] font-bold border bg-${ti.color}-950/50 text-${ti.color}-300 border-${ti.color}-800/30">
+                        ${ti.label}
+                    </span>
+                    <span class="text-[10px] text-slate-500">${formatTime(item.date)}</span>
+                </div>
+
+                <h2 class="text-xl font-bold text-slate-100 leading-snug">${escapeHtml(item.title)}</h2>
+
+                <div class="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-[10px] text-slate-400 uppercase tracking-widest">资产信息</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="folder" class="w-4 h-4 text-slate-500"></i>
+                        <span class="text-sm font-semibold text-slate-200">${ti.label}</span>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <i data-lucide="user" class="w-4 h-4 text-slate-500"></i>
+                        <span class="text-sm text-slate-300">${escapeHtml(item.recipient || '未指定接收人')}</span>
+                    </div>
+                    ${fileNameRow}
+                </div>
+
+                ${contentBlock}
+
+                <div class="flex space-x-3 pt-2">
+                    <button onclick="event.stopPropagation(); showAssetEditForm('${item.id}')" class="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center space-x-2">
+                        <i data-lucide="edit-3" class="w-4 h-4"></i>
+                        <span>编辑修改</span>
+                    </button>
+                    <button onclick="event.stopPropagation(); deleteAssetFromDetail('${item.id}')" class="py-3.5 px-5 bg-slate-800/50 hover:bg-red-950/20 text-red-400 border border-red-900/20 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center space-x-2">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        <span>删除</span>
+                    </button>
+                </div>
+            </div>`;
+    }
+
+    async function deleteAssetFromDetail(id) {
+        if (!confirm('确定要删除该资产吗？此操作不可撤销。')) return;
+
+        try {
+            await api(`/api/assets/${id}`, { method: 'DELETE' });
+            await loadRemoteData();
+            updateUI();
+            closeModal();
+            showToast('资产已删除', 'success');
+        } catch (e) {
+            showToast('删除失败: ' + e.message, 'error');
+        }
+    }
+
+    function showAssetEditForm(id) {
+        const item = state.vaultItems.find(v => v.id === id);
+        if (!item) return;
+
+        const content = document.getElementById('modal-content');
+        const closeBtn = `<button onclick="closeModal()" class="absolute right-6 top-6 w-8 h-8 flex items-center justify-center text-slate-400 bg-slate-800/85 rounded-full hover:bg-slate-700 z-10 border border-slate-700 active:scale-90 transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>`;
+
+        content.innerHTML = closeBtn + `
+            <div class="space-y-5 pt-2">
+                <h3 class="text-xl font-bold text-slate-200">编辑资产凭证</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">资产标题</label>
+                        <input id="edit-asset-title" type="text" value="${escapeHtml(item.title)}" class="w-full p-3 bg-slate-800 border-none rounded-xl text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">接收人</label>
+                        <input id="edit-asset-recipient" type="text" value="${escapeHtml(item.recipient || '')}" placeholder="继承人/受益人" class="w-full p-3 bg-slate-800 border-none rounded-xl text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>
+                    ${item.type === 'text' ? `
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">凭证内容</label>
+                        <textarea id="edit-asset-content" rows="5" class="w-full p-3 bg-slate-800 border-none rounded-xl text-sm text-white placeholder-slate-500 focus:ring-1 focus:ring-blue-500 outline-none resize-none">${escapeHtml(item.content)}</textarea>
+                    </div>` : `
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">备注说明</label>
+                        <input id="edit-asset-content" type="text" value="${escapeHtml(item.content || '')}" placeholder="描述信息" class="w-full p-3 bg-slate-800 border-none rounded-xl text-sm text-white focus:ring-1 focus:ring-blue-500 outline-none">
+                    </div>`}
+                </div>
+                <div class="flex space-x-3 pt-2">
+                    <button onclick="event.stopPropagation(); saveAssetEdit('${item.id}')" class="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm active:scale-95 transition-all">保存修改</button>
+                    <button onclick="event.stopPropagation(); viewAssetDetail('${item.id}')" class="py-3.5 px-5 bg-slate-800/50 hover:bg-slate-700 text-slate-400 rounded-2xl font-bold text-sm active:scale-95 transition-all">取消</button>
+                </div>
+            </div>`;
+        renderIcons();
+    }
+
+    async function saveAssetEdit(id) {
+        const title = document.getElementById('edit-asset-title')?.value?.trim();
+        const recipient = document.getElementById('edit-asset-recipient')?.value?.trim();
+        const content = document.getElementById('edit-asset-content')?.value?.trim();
+
+        if (!title) {
+            showToast('请输入资产标题', 'warning');
+            return;
+        }
+
+        try {
+            await api(`/api/assets/${id}`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                    title,
+                    content: encryptContent(content || ''),
+                    tags: recipient
+                })
+            });
+            await loadRemoteData();
+            updateUI();
+            viewAssetDetail(id);
+            showToast('资产已更新', 'success');
+        } catch (e) {
+            showToast('更新失败: ' + e.message, 'error');
+        }
+    }
+
+    // ==================== Add Item (Vault) ====================
+    function showAddItemForm(closeBtn) {
+        const content = document.getElementById('modal-content');
+        currentAssetType = 'text';
+        uploadedImageData = null;
+        uploadedDocName = null;
+
+        content.innerHTML = closeBtn + `
+            <div class="space-y-6">
+                <h3 class="text-xl font-bold text-slate-200">添加资产凭证</h3>
+
+                <div class="flex space-x-1.5 bg-slate-900/60 p-1 rounded-2xl border border-slate-800">
+                    <button onclick="selectAssetTab('text')" id="asset-tab-text" class="flex-1 py-2 text-xs font-bold rounded-xl transition-all bg-indigo-600 text-white shadow-sm">
+                        🔑 核心文本
+                    </button>
+                    <button onclick="selectAssetTab('image')" id="asset-tab-image" class="flex-1 py-2 text-xs font-bold rounded-xl transition-all text-slate-400">
+                        🖼️ 图片证物
+                    </button>
+                    <button onclick="selectAssetTab('document')" id="asset-tab-document" class="flex-1 py-2 text-xs font-bold rounded-xl transition-all text-slate-400">
+                        📄 重要文档
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">资产标题</label>
+                        <input id="v-title" type="text" placeholder="资产名称 (如：保险箱密码/土地使用权证)" class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 text-white outline-none">
+                    </div>
+
+                    <div id="asset-input-text" class="space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">加密文本内容</label>
+                        <textarea id="v-content" placeholder="加密信息内容..." class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm h-32 focus:ring-2 focus:ring-blue-500 text-white outline-none resize-none"></textarea>
+                    </div>
+
+                    <div id="asset-input-image" class="hidden space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">拍照上传</label>
+                        <div id="image-upload-area" onclick="document.getElementById('image-file-input').click()" class="p-6 bg-slate-800 hover:bg-slate-750 border-2 border-dashed border-slate-700 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all">
+                            <i data-lucide="image" class="w-8 h-8 text-slate-500 mb-2" id="mock-image-icon"></i>
+                            <span class="text-xs text-slate-400 font-semibold" id="mock-image-text">点击选择照片证件</span>
+                            <span class="text-[10px] text-slate-500 mt-1">本地 AES-256 加密封装</span>
+                        </div>
+                        <div id="image-preview-container" class="hidden mt-2">
+                            <img id="image-preview" class="upload-preview-img mx-auto" alt="预览">
+                            <p class="text-[10px] text-emerald-400 text-center mt-1" id="image-preview-name"></p>
+                        </div>
+                    </div>
+
+                    <div id="asset-input-document" class="hidden space-y-1">
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">电子文档</label>
+                        <div id="doc-upload-area" onclick="document.getElementById('document-file-input').click()" class="p-6 bg-slate-800 hover:bg-slate-750 border-2 border-dashed border-slate-700 rounded-2xl flex flex-col items-center justify-center cursor-pointer transition-all">
+                            <i data-lucide="file-text" class="w-8 h-8 text-slate-500 mb-2" id="mock-doc-icon"></i>
+                            <span class="text-xs text-slate-400 font-semibold" id="mock-doc-text">点击选择 PDF/Word 文件</span>
+                            <span class="text-[10px] text-slate-500 mt-1">绝密级离岸封存</span>
+                        </div>
+                        <p id="doc-selected-name" class="hidden text-[10px] text-emerald-400 text-center mt-1"></p>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] font-bold text-slate-400 uppercase tracking-widest ml-1 mb-1 block">指定继承接收人 (可留空)</label>
+                        <input id="v-rec" type="text" placeholder="收件人姓名" class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm focus:ring-2 focus:ring-blue-500 text-white outline-none" autocomplete="off">
+                    </div>
+                </div>
+                <button onclick="handleAddItem()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold shadow-xl active:scale-95 transition-all">
+                    安全加密存入密室
+                </button>
+            </div>
+        `;
+        renderIcons();
+    }
+
+    function selectAssetTab(tabType) {
+        currentAssetType = tabType;
+        ['text', 'image', 'document'].forEach(t => {
+            const tabBtn = document.getElementById(`asset-tab-${t}`);
+            const inputArea = document.getElementById(`asset-input-${t}`);
+            if (tabBtn) {
+                tabBtn.classList.remove('bg-indigo-600', 'text-white');
+                tabBtn.classList.add('text-slate-400');
+            }
+            if (inputArea) inputArea.classList.add('hidden');
+        });
+
+        const activeBtn = document.getElementById(`asset-tab-${tabType}`);
+        const activeArea = document.getElementById(`asset-input-${tabType}`);
+        if (activeBtn) {
+            activeBtn.classList.add('bg-indigo-600', 'text-white');
+            activeBtn.classList.remove('text-slate-400');
+        }
+        if (activeArea) activeArea.classList.remove('hidden');
+    }
+
+    function handleRealFileUpload(type, input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        if (type === 'image') {
+            // Validate image
+            if (!file.type.startsWith('image/')) {
+                showToast('请选择图片文件', 'warning');
+                input.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                uploadedImageData = e.target.result;
+                const preview = document.getElementById('image-preview');
+                const previewContainer = document.getElementById('image-preview-container');
+                const previewName = document.getElementById('image-preview-name');
+
+                if (preview && previewContainer && previewName) {
+                    preview.src = uploadedImageData;
+                    previewContainer.classList.remove('hidden');
+                    previewName.textContent = `${file.name} (${(file.size / 1024).toFixed(1)}KB)`;
+                }
+            };
+            reader.readAsDataURL(file);
+        } else if (type === 'document') {
+            uploadedDocName = file.name;
+            const docName = document.getElementById('doc-selected-name');
+            const docText = document.getElementById('mock-doc-text');
+            const docIcon = document.getElementById('mock-doc-icon');
+
+            if (docName) {
+                docName.textContent = `✅ 已选择: ${file.name} (${(file.size / 1024).toFixed(1)}KB)`;
+                docName.classList.remove('hidden');
+            }
+            if (docText) docText.textContent = '点击更换文件';
+            if (docIcon) {
+                docIcon.setAttribute('data-lucide', 'check-circle');
+                docIcon.classList.add('text-green-400');
+            }
+            renderIcons();
+        }
+    }
+
+    async function handleAddItem() {
+        const title = document.getElementById('v-title')?.value?.trim();
+        const recipient = document.getElementById('v-rec')?.value?.trim() || '未指定';
+
+        if (!title) {
+            showToast('请输入资产标题', 'warning');
+            return;
+        }
+
+        let content = '';
+        let fileName = '';
+        let fileSize = '';
+
+        if (currentAssetType === 'text') {
+            content = document.getElementById('v-content')?.value?.trim() || '';
+            if (!content) {
+                showToast('请输入凭证内容', 'warning');
+                return;
+            }
+        } else if (currentAssetType === 'image') {
+            if (!uploadedImageData) {
+                showToast('请选择一张图片', 'warning');
+                return;
+            }
+            fileName = 'encrypted_image.png';
+            content = `[图片凭证已加密] 数据大小: ${(uploadedImageData.length / 1024).toFixed(1)}KB`;
+        } else if (currentAssetType === 'document') {
+            if (!uploadedDocName) {
+                showToast('请选择一个文档文件', 'warning');
+                return;
+            }
+            fileName = uploadedDocName;
+            content = `[文档附件] 文件: ${uploadedDocName}`;
+        }
+
+        try {
+            // Encrypt content before sending
+            const encryptedContent = encryptContent(content);
+
+            if (currentAssetType !== 'text' && (uploadedImageData || uploadedDocName)) {
+                // File upload
+                const fd = new FormData();
+                fd.append('type', currentAssetType);
+                fd.append('title', title);
+                fd.append('tags', recipient);
+                fd.append('content', encryptedContent);
+                if (uploadedImageData) {
+                    const blob = base64ToBlob(uploadedImageData, 'image/png');
+                    fd.append('file', blob, fileName || 'asset.png');
+                }
+                await apiUpload('/api/assets', fd);
+            } else {
+                await api('/api/assets', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        type: currentAssetType,
+                        title,
+                        content: encryptedContent,
+                        tags: recipient
+                    })
+                });
+            }
+
+            await loadRemoteData();
+            updateUI();
+            closeModal();
+            showToast('资产已安全存入密室', 'success');
+        } catch (e) {
+            showToast('保存失败: ' + e.message, 'error');
+        }
+    }
+
+    // ==================== Add Message (Echo) ====================
+    function showAddMessageForm(closeBtn) {
+        const content = document.getElementById('modal-content');
+        currentMediaType = 'text';
+        audioIsRecording = false;
+        videoIsRecording = false;
+        recordingSeconds = 0;
+
+        content.innerHTML = closeBtn + `
+            <div class="space-y-6">
+                <h3 class="text-xl font-bold text-slate-200">创建留声舱</h3>
+
+                <div class="flex space-x-2 bg-slate-900/60 p-1.5 rounded-2xl border border-slate-800">
+                    <button onclick="selectMediaTab('text')" id="tab-btn-text" class="flex-1 py-2 text-xs font-bold rounded-xl transition bg-purple-600 text-white">
+                        📝 文字信件
+                    </button>
+                    <button onclick="selectMediaTab('audio')" id="tab-btn-audio" class="flex-1 py-2 text-xs font-bold rounded-xl transition text-slate-400">
+                        🎙️ 录制音频
+                    </button>
+                    <button onclick="selectMediaTab('video')" id="tab-btn-video" class="flex-1 py-2 text-xs font-bold rounded-xl transition text-slate-400">
+                        📹 摄制视频
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">留声标题</label>
+                        <input id="m-title" type="text" placeholder="例如：给女儿的20岁生日祝福" class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm text-white focus:ring-1 focus:ring-purple-500 outline-none" autocomplete="off">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">寄件给谁 (称呼)</label>
+                            <input id="m-recipient" type="text" placeholder="例如：女儿 萱萱" class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm text-white focus:ring-1 focus:ring-purple-500 outline-none" autocomplete="off">
+                        </div>
+                        <div>
+                            <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">接收人联系方式 (邮箱/手机)</label>
+                            <input id="m-contact" type="text" placeholder="用于主动/定时分发" class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm text-white focus:ring-1 focus:ring-purple-500 outline-none" autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
+                        <label class="text-[10px] text-indigo-300 font-bold uppercase tracking-widest block">分发发送时机与定时设定</label>
+                        <select id="m-send-type" onchange="toggleSendTimeUI()" class="w-full p-3 bg-slate-800 border-none rounded-xl text-xs text-slate-200 outline-none">
+                            <option value="death_immediate">⌛ 确认离世后立即分发发送</option>
+                            <option value="fixed_date">⏰ 指定未来具体日期 定时主动发送</option>
+                            <option value="death_delay">⏳ 确认离世后延后定时发送</option>
+                        </select>
+                        <div id="m-send-time-container" class="hidden">
+                            <label id="m-send-time-label" class="text-[9px] text-slate-400 block mb-1"></label>
+                            <div id="m-send-time-input-wrap"></div>
+                        </div>
+                    </div>
+
+                    <div id="media-content-text" class="space-y-2">
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">信件正文</label>
+                        <textarea id="m-content-text" placeholder="写下您的寄托或心愿..." class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm text-white h-28 focus:ring-1 focus:ring-purple-500 outline-none resize-none"></textarea>
+                    </div>
+
+                    <div id="media-content-audio" class="hidden p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-4 text-center">
+                        <div class="flex justify-center items-center space-x-2 h-10" id="audio-wave-anim" style="visibility: hidden;">
+                            <span class="wave-bar" style="animation-delay: 0.1s"></span>
+                            <span class="wave-bar" style="animation-delay: 0.3s"></span>
+                            <span class="wave-bar" style="animation-delay: 0.5s"></span>
+                            <span class="wave-bar" style="animation-delay: 0.2s"></span>
+                            <span class="wave-bar" style="animation-delay: 0.4s"></span>
+                        </div>
+                        <p class="text-xs text-slate-400">点击下方按钮开始模拟录音，用于对亲人音色还原训练</p>
+                        <div class="flex items-center justify-center">
+                            <button onclick="toggleAudioRecording()" id="audio-rec-btn" class="w-14 h-14 bg-purple-600 hover:bg-purple-500 text-white rounded-full flex items-center justify-center active:scale-95 transition-all shadow-lg shadow-purple-500/20">
+                                <i data-lucide="mic" class="w-6 h-6"></i>
+                            </button>
+                        </div>
+                        <span class="text-sm font-bold text-purple-400 block" id="audio-timer">00 : 00</span>
+                    </div>
+
+                    <div id="media-content-video" class="hidden p-4 bg-slate-900 rounded-2xl border border-slate-800 space-y-4 text-center">
+                        <div class="relative w-full aspect-video bg-black rounded-xl border border-slate-800 overflow-hidden flex items-center justify-center">
+                            <div class="absolute top-2 left-2 flex items-center space-x-1.5 bg-black/60 px-2 py-0.5 rounded-full text-[9px] text-red-500" id="video-rec-dot" style="display: none;">
+                                <span class="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
+                                <span>REC</span>
+                            </div>
+                            <div id="video-placeholder" class="text-center p-4">
+                                <i data-lucide="video" class="w-8 h-8 mx-auto text-slate-600 mb-2"></i>
+                                <p class="text-[10px] text-slate-500">准备摄制。将提取您的3D神态、面容神经追踪信息作为后续全息影像数据源。</p>
+                            </div>
+                            <div id="video-lens-active" class="absolute inset-0 bg-emerald-950/20 hidden flex items-center justify-center">
+                                <span class="text-[10px] text-emerald-400 font-bold tracking-widest uppercase">AI 3D生物神经网格采编中</span>
+                            </div>
+                        </div>
+                        <div class="flex justify-center">
+                            <button onclick="toggleVideoRecording()" id="video-rec-btn-action" class="px-8 py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-full text-xs active:scale-95 transition-all">
+                                开始提取面部与神态
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="handleAddMessage()" class="w-full py-4 bg-purple-600 hover:bg-purple-500 text-white rounded-2xl font-bold active:scale-95 transition-all">
+                    安全封存在时光机
+                </button>
+            </div>
+        `;
+
+        toggleSendTimeUI();
+        renderIcons();
+    }
+
+    function toggleSendTimeUI() {
+        const sendTypeEl = document.getElementById('m-send-type');
+        if (!sendTypeEl) return;
+        const sendType = sendTypeEl.value;
+        const container = document.getElementById('m-send-time-container');
+        const wrap = document.getElementById('m-send-time-input-wrap');
+        const label = document.getElementById('m-send-time-label');
+
+        if (sendType === 'death_immediate') {
+            container.classList.add('hidden');
+            if (wrap) wrap.innerHTML = '';
+        } else if (sendType === 'fixed_date') {
+            container.classList.remove('hidden');
+            if (label) label.innerText = '选择未来发送的具体日期 (届时系统将主动解密封存发送)';
+            if (wrap) wrap.innerHTML = `<input type="date" id="m-send-time" class="w-full p-3 bg-slate-800 border-none rounded-xl text-xs text-white focus:ring-1 focus:ring-purple-500 outline-none">`;
+        } else if (sendType === 'death_delay') {
+            container.classList.remove('hidden');
+            if (label) label.innerText = '确认去世并解锁后，在以下特定周期后主动发出';
+            if (wrap) wrap.innerHTML = `
+                <select id="m-send-time" class="w-full p-3 bg-slate-800 border-none rounded-xl text-xs text-slate-200 outline-none">
+                    <option value="1个月后">离世 1 个月后</option>
+                    <option value="3个月后">离世 3 个月后</option>
+                    <option value="1年后">离世 1 周年祭</option>
+                    <option value="3年后">离世 3 周年祭</option>
+                    <option value="5年后">离世 5 周年祭</option>
+                </select>
+            `;
+        }
+    }
+
+    function selectMediaTab(tabType) {
+        currentMediaType = tabType;
+        ['text', 'audio', 'video'].forEach(t => {
+            const btn = document.getElementById(`tab-btn-${t}`);
+            const area = document.getElementById(`media-content-${t}`);
+            if (btn) {
+                btn.classList.remove('bg-purple-600', 'text-white');
+                btn.classList.add('text-slate-400');
+            }
+            if (area) area.classList.add('hidden');
+        });
+
+        const activeBtn = document.getElementById(`tab-btn-${tabType}`);
+        const activeArea = document.getElementById(`media-content-${tabType}`);
+        if (activeBtn) {
+            activeBtn.classList.add('bg-purple-600', 'text-white');
+            activeBtn.classList.remove('text-slate-400');
+        }
+        if (activeArea) activeArea.classList.remove('hidden');
+    }
+
+    async function toggleAudioRecording() {
+        const btn = document.getElementById('audio-rec-btn');
+        const wave = document.getElementById('audio-wave-anim');
+        const timer = document.getElementById('audio-timer');
+        if (!btn) return;
+
+        if (audioIsRecording) {
+            // Stop recording
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+            audioIsRecording = false;
+            if (mockRecordingTimer) { clearInterval(mockRecordingTimer); mockRecordingTimer = null; }
+            if (wave) wave.style.visibility = 'hidden';
+            btn.classList.remove('bg-red-600');
+            btn.classList.add('bg-purple-600');
+            btn.innerHTML = '<i data-lucide="mic" class="w-6 h-6"></i>';
+            showToast(`录音完成，共 ${recordingSeconds} 秒`, 'success');
+        } else {
+            // Start recording
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const chunks = [];
+                mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('audio/webm;codecs=opus') ? 'audio/webm;codecs=opus' : 'audio/webm' });
+                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    mediaRecorderBlob = new Blob(chunks, { type: mediaRecorder.mimeType });
+                    stream.getTracks().forEach(t => t.stop());
+                };
+                mediaRecorder.start();
+                audioIsRecording = true;
+                recordingSeconds = 0;
+                if (wave) wave.style.visibility = 'visible';
+                btn.classList.remove('bg-purple-600');
+                btn.classList.add('bg-red-600');
+                btn.innerHTML = '<i data-lucide="square" class="w-6 h-6"></i>';
+                mockRecordingTimer = setInterval(() => {
+                    recordingSeconds++;
+                    const m = Math.floor(recordingSeconds / 60).toString().padStart(2, '0');
+                    const s = (recordingSeconds % 60).toString().padStart(2, '0');
+                    if (timer) timer.innerText = `${m} : ${s}`;
+                }, 1000);
+            } catch (e) {
+                showToast('无法访问麦克风: ' + e.message, 'error');
+            }
+        }
+        renderIcons();
+    }
+
+    async function toggleVideoRecording() {
+        const btn = document.getElementById('video-rec-btn-action');
+        const dot = document.getElementById('video-rec-dot');
+        const lens = document.getElementById('video-lens-active');
+        const placeholder = document.getElementById('video-placeholder');
+        const timer = document.getElementById('video-timer-display');
+        if (!btn) return;
+
+        if (videoIsRecording) {
+            // Stop recording
+            if (mediaRecorder && mediaRecorder.state === 'recording') {
+                mediaRecorder.stop();
+            }
+            videoIsRecording = false;
+            if (mockRecordingTimer) { clearInterval(mockRecordingTimer); mockRecordingTimer = null; }
+            if (dot) dot.style.display = 'none';
+            if (lens) lens.classList.add('hidden');
+            if (placeholder) placeholder.classList.remove('hidden');
+            btn.innerText = '开始提取面部与神态';
+            btn.classList.replace('bg-slate-800', 'bg-red-600');
+            showToast('视频录制完成', 'success');
+        } else {
+            // Start recording
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+                // Show preview
+                if (lens) { lens.srcObject = stream; lens.classList.remove('hidden'); lens.play(); }
+                if (placeholder) placeholder.classList.add('hidden');
+                const chunks = [];
+                mediaRecorder = new MediaRecorder(stream, { mimeType: MediaRecorder.isTypeSupported('video/webm;codecs=vp9') ? 'video/webm;codecs=vp9' : 'video/webm' });
+                mediaRecorder.ondataavailable = e => { if (e.data.size > 0) chunks.push(e.data); };
+                mediaRecorder.onstop = () => {
+                    mediaRecorderBlob = new Blob(chunks, { type: mediaRecorder.mimeType });
+                    stream.getTracks().forEach(t => t.stop());
+                };
+                mediaRecorder.start();
+                videoIsRecording = true;
+                recordingSeconds = 0;
+                if (dot) dot.style.display = 'flex';
+                btn.innerText = '停止录制';
+                btn.classList.replace('bg-red-600', 'bg-slate-800');
+                mockRecordingTimer = setInterval(() => {
+                    recordingSeconds++;
+                    const m = Math.floor(recordingSeconds / 60).toString().padStart(2, '0');
+                    const s = (recordingSeconds % 60).toString().padStart(2, '0');
+                    if (timer) timer.innerText = `${m} : ${s}`;
+                }, 1000);
+            } catch (e) {
+                showToast('无法访问摄像头: ' + e.message, 'error');
+            }
+        }
+    }
+
+    async function handleAddMessage() {
+        const title = document.getElementById('m-title')?.value?.trim();
+        const recipient = document.getElementById('m-recipient')?.value?.trim();
+        const contact = document.getElementById('m-contact')?.value?.trim() || '无联系方式';
+        const sendTypeEl = document.getElementById('m-send-type');
+        const sendType = sendTypeEl ? sendTypeEl.value : 'death_immediate';
+
+        if (!title) {
+            showToast('请输入留声标题', 'warning');
+            return;
+        }
+        if (!recipient) {
+            showToast('请输入收件人称呼', 'warning');
+            return;
+        }
+
+        let sendTime = '';
+        if (sendType !== 'death_immediate') {
+            sendTime = document.getElementById('m-send-time')?.value || '未设置';
+        }
+
+        let content = '';
+        if (currentMediaType === 'text') {
+            content = document.getElementById('m-content-text')?.value?.trim() || '';
+            if (!content) {
+                showToast('请输入信件内容', 'warning');
+                return;
+            }
+        } else if (currentMediaType === 'audio') {
+            content = `[音频留声录制] 时长：${recordingSeconds}秒`;
+        } else if (currentMediaType === 'video') {
+            content = '[视频面容录制已封存]';
+        }
+
+        try {
+            if (currentMediaType !== 'text' && mediaRecorderBlob) {
+                // Upload with file
+                const fd = new FormData();
+                fd.append('type', currentMediaType);
+                fd.append('title', title);
+                fd.append('recipient', recipient);
+                fd.append('contact', contact);
+                fd.append('send_type', sendType);
+                fd.append('send_time', sendTime);
+                fd.append('content', encryptContent(content));
+                fd.append('file', mediaRecorderBlob, `${currentMediaType}_${Date.now()}.${currentMediaType === 'audio' ? 'webm' : 'mp4'}`);
+                await apiUpload('/api/messages', fd);
+                mediaRecorderBlob = null;
+            } else {
+                await api('/api/messages', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        type: currentMediaType,
+                        title,
+                        content: encryptContent(content),
+                        recipient,
+                        contact,
+                        send_type: sendType,
+                        send_time: sendTime
+                    })
+                });
+            }
+
+            await loadRemoteData();
+            updateUI();
+            closeModal();
+            showToast('留声舱已安全封存', 'success');
+        } catch (e) {
+            showToast('保存失败: ' + e.message, 'error');
+        }
+    }
+
+    // ==================== Add Relative ====================
+    function showAddRelativeForm(closeBtn) {
+        const content = document.getElementById('modal-content');
+
+        const messagesListHTML = state.messages.length === 0 ?
+            `<p class="text-xs text-slate-500 italic p-2">尚未在留声机中添加任何数据，请先创建以获取训练素材。</p>` :
+            state.messages.map((m) => {
+                const typeIcon = m.type === 'audio' ? '🎙️' : m.type === 'video' ? '📹' : '📝';
+                const typeLabel = m.type === 'audio' ? '音频留声' : m.type === 'video' ? '视频留声' : '文字留声';
+                const preview = (m.content || '').replace(/\[.*?\]/g, '').trim().slice(0, 60) || '（无文字预览）';
+                const hasPreview = m.type === 'text' && m.content && m.content.length > 0;
+                return `
+                <div class="bg-slate-800/50 rounded-xl border border-slate-700/30 overflow-hidden hover:border-indigo-500/40 transition-all">
+                    <label class="flex items-start gap-3 p-3 cursor-pointer">
+                        <input type="checkbox" name="train-source" value="${m.id}" class="mt-0.5 rounded text-indigo-600 bg-slate-900 border-slate-700 flex-shrink-0">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-1.5 mb-0.5">
+                                <span class="text-sm">${typeIcon}</span>
+                                <span class="text-xs font-semibold text-slate-200 truncate">${m.title}</span>
+                                <span class="text-[9px] text-indigo-400 bg-indigo-900/40 px-1.5 py-0.5 rounded-full flex-shrink-0">${typeLabel}</span>
+                            </div>
+                            ${hasPreview ? `<p class="text-[11px] text-slate-400 leading-relaxed line-clamp-2">${preview}${m.content.length > 60 ? '…' : ''}</p>` : `<p class="text-[11px] text-slate-500 italic">${preview}</p>`}
+                            ${m.recipients && m.recipients.length > 0 ? `<p class="text-[10px] text-slate-500 mt-0.5">收件人：${m.recipients.join('、')}</p>` : ''}
+                        </div>
+                        ${hasPreview && m.content.length > 60 ? `<button type="button" onclick="toggleMsgPreview('prev-${m.id}')" class="text-[10px] text-indigo-400 flex-shrink-0 hover:text-indigo-300 mt-0.5">展开</button>` : ''}
+                    </label>
+                    ${hasPreview && m.content.length > 60 ? `
+                    <div id="prev-${m.id}" class="hidden px-3 pb-3">
+                        <p class="text-[11px] text-slate-300 leading-relaxed bg-slate-900/60 rounded-lg p-2.5 border border-slate-700/30 whitespace-pre-wrap">${m.content}</p>
+                    </div>` : ''}
+                </div>`;
+            }).join('');
+
+        content.innerHTML = closeBtn + `
+            <div class="space-y-6">
+                <h3 class="text-xl font-bold text-slate-200">塑造数字亲人灵魂</h3>
+                <p class="text-xs text-slate-400">通过您灌输的照片、回忆或留存音色，在神经网络中重新复现他们的陪伴。</p>
+
+                <div class="space-y-4">
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">称呼 / 姓名</label>
+                        <input id="r-name" type="text" placeholder="例如：外公" class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none" autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">与您的关系</label>
+                        <input id="r-relation" type="text" placeholder="例如：祖孙" class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none" autocomplete="off">
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">亲人生活照片链接 (选填)</label>
+                        <input id="r-photo" type="text" placeholder="URL，可留空" class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm text-white focus:ring-1 focus:ring-indigo-500 outline-none" autocomplete="off">
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1.5">挑选微调训练集导入源 (勾选在留声中封存的要素)</label>
+                        <div class="max-h-36 overflow-y-auto space-y-2 pr-1 no-scrollbar">
+                            ${messagesListHTML}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase tracking-widest block mb-1">性格与语调期望</label>
+                        <textarea id="r-prompt" placeholder="我期望外公声音像生前那样温和、常常叮嘱我好好生活..." class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm text-white h-24 focus:ring-1 focus:ring-indigo-500 outline-none resize-none"></textarea>
+                    </div>
+                </div>
+
+                <button onclick="handleCreateRelative()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold transition-all active:scale-95 shadow-xl shadow-indigo-600/10">
+                    启动AI大脑算法重组
+                </button>
+            </div>
+        `;
+        renderIcons();
+    }
+
+    async function handleCreateRelative() {
+        const name = document.getElementById('r-name')?.value?.trim();
+        const relation = document.getElementById('r-relation')?.value?.trim();
+        const photoInput = document.getElementById('r-photo')?.value?.trim();
+        const prompt = document.getElementById('r-prompt')?.value?.trim();
+
+        if (!name) {
+            showToast('请输入亲人称呼', 'warning');
+            return;
+        }
+        if (!relation) {
+            showToast('请输入与您的关系', 'warning');
+            return;
+        }
+
+        const checkboxes = document.querySelectorAll('input[name="train-source"]:checked');
+        const selectedAssets = [];
+
+        checkboxes.forEach(cb => {
+            const relatedMsg = state.messages.find(m => m.id === cb.value);
+            if (relatedMsg) {
+                selectedAssets.push({
+                    id: relatedMsg.id,
+                    title: relatedMsg.title,
+                    type: relatedMsg.type,
+                    content: relatedMsg.content || ''
+                });
+            }
+        });
+
+        try {
+            await api('/api/relatives', {
+                method: 'POST',
+                body: JSON.stringify({
+                    name,
+                    relation,
+                    personality: prompt || `你好，孩子。我是你的${name}。无论身处何处，我的牵挂依然常伴你身旁。`,
+                    avatar: photoInput || '',
+                    trained_assets: selectedAssets,
+                    memories: selectedAssets.filter(a => a.type === 'text').map(a => a.content).filter(Boolean)
+                })
+            });
+
+            await loadRemoteData();
+            updateUI();
+            closeModal();
+            showToast(`${name}的数字灵魂已塑造完成`, 'success');
+        } catch (e) {
+            showToast('创建失败: ' + e.message, 'error');
+        }
+    }
+
+    // ==================== Settings ====================
+    function showSettingsForm(closeBtn) {
+        const content = document.getElementById('modal-content');
+        content.innerHTML = closeBtn + `
+            <div class="space-y-6">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-xl font-bold text-slate-200">状态确认周期设定</h3>
+                </div>
+                <p class="text-xs text-slate-400">设置系统多久检查一次您的安全状态。若检测到异常且未在规定时间内确认，系统将按照预设规则分发您的数字遗产。</p>
+                <div class="space-y-5">
+                    <div>
+                        <label class="text-xs font-bold text-slate-400 uppercase block mb-3">周期设置</label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="setFreq(1)" class="p-3 rounded-xl border transition-all text-slate-300 text-xs font-bold ${state.checkIntervalDays === 1 ? 'border-indigo-500 text-indigo-400 bg-indigo-950/30' : 'border-slate-700 hover:bg-slate-800'}">
+                                ⚡ 每天检查
+                            </button>
+                            <button onclick="setFreq(7)" class="p-3 rounded-xl border transition-all text-slate-300 text-xs font-bold ${state.checkIntervalDays === 7 ? 'border-indigo-500 text-indigo-400 bg-indigo-950/30' : 'border-slate-700 hover:bg-slate-800'}">
+                                📅 每周检查
+                            </button>
+                            <button onclick="setFreq(30)" class="p-3 rounded-xl border transition-all text-slate-300 text-xs font-bold ${state.checkIntervalDays === 30 ? 'border-indigo-500 text-indigo-400 bg-indigo-950/30' : 'border-slate-700 hover:bg-slate-800'}">
+                                ⏳ 每月检查
+                            </button>
+                            <button onclick="setFreq(90)" class="p-3 rounded-xl border transition-all text-slate-300 text-xs font-bold ${state.checkIntervalDays === 90 ? 'border-indigo-500 text-indigo-400 bg-indigo-950/30' : 'border-slate-700 hover:bg-slate-800'}">
+                                🗃️ 每季检查
+                            </button>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] text-slate-400 uppercase block mb-2">自定义天数</label>
+                        <div class="relative">
+                            <input id="custom-freq" type="number" min="1" max="365" value="${state.checkIntervalDays}" class="w-full p-4 bg-slate-800 border-none rounded-2xl text-sm font-bold text-white pr-16 focus:ring-1 focus:ring-blue-500 outline-none">
+                            <span class="absolute right-4 top-4 text-slate-500 text-xs">天一次</span>
+                        </div>
+                    </div>
+                </div>
+                <button onclick="saveSettings()" class="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold active:scale-95 transition-all">
+                    保存并生效
+                </button>
+            </div>
+        `;
+        renderIcons();
+    }
+
+    function setFreq(days) {
+        state.checkIntervalDays = days;
+        const customInput = document.getElementById('custom-freq');
+        if (customInput) customInput.value = days;
+        // Update button styles
+        [1, 7, 30, 90].forEach(d => {
+            const btns = document.querySelectorAll(`button[onclick="setFreq(${d})"]`);
+            btns.forEach(btn => {
+                if (d === days) {
+                    btn.classList.add('border-indigo-500', 'text-indigo-400', 'bg-indigo-950/30');
+                } else {
+                    btn.classList.remove('border-indigo-500', 'text-indigo-400', 'bg-indigo-950/30');
+                    btn.classList.add('border-slate-700');
+                }
+            });
+        });
+    }
+
+    function saveSettings() {
+        const val = document.getElementById('custom-freq')?.value;
+        if (val && parseInt(val) > 0 && parseInt(val) <= 365) {
+            state.checkIntervalDays = parseInt(val);
+        } else if (val && parseInt(val) <= 0) {
+            showToast('天数必须大于 0', 'warning');
+            return;
+        }
+        updateCheckDate();
+        updateUI();
+        closeModal();
+        showToast('设置已保存', 'success');
+    }
+
+    // ==================== Items Management ====================
+    async function deleteItem(type, id) {
+        const typeMap = {
+            'vaultItems': { endpoint: '/api/assets', name: '资产' },
+            'messages': { endpoint: '/api/messages', name: '留声舱' }
+        };
+
+        const target = typeMap[type];
+        if (!target) return;
+
+        const item = type === 'vaultItems' ? state.vaultItems.find(v => v.id === id) : state.messages.find(m => m.id === id);
+        if (!item) return;
+
+        if (confirm(`确定要删除「${item.title}」吗？此操作不可撤销。`)) {
+            try {
+                await api(`${target.endpoint}/${id}`, { method: 'DELETE' });
+                await loadRemoteData();
+                updateUI();
+                showToast(`${target.name}已删除`);
+            } catch (e) {
+                showToast('删除失败: ' + e.message, 'error');
+            }
+        }
+    }
+
+    // ==================== Heartbeat ====================
+    async function resetHeartbeat() {
+        state.lastHeartbeat = Date.now();
+        updateCheckDate();
+
+        // Send heartbeat to backend
+        if (getToken()) {
+            try { await api('/api/heartbeat', { method: 'POST' }); } catch {}
+        }
+
+        const statusText = document.getElementById('status-text');
+        if (statusText) {
+            const newQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
+            statusText.style.opacity = '0';
+            setTimeout(() => {
+                statusText.innerText = newQuote;
+                statusText.style.opacity = '1';
+            }, 200);
+        }
+
+        const ring = document.getElementById('status-ring');
+        if (ring) {
+            ring.style.transform = 'scale(1.06)';
+            setTimeout(() => ring.style.transform = 'scale(1)', 250);
+        }
+
+        showToast('状态已确认 ✓', 'success');
+    }
+
+    function updateCheckDate() {
+        const dateEl = document.getElementById('next-check-date');
+        if (dateEl) {
+            const nextDate = new Date(state.lastHeartbeat + (state.checkIntervalDays * 24 * 60 * 60 * 1000));
+            dateEl.innerText = nextDate.toLocaleDateString('zh-CN', {
+                year: 'numeric', month: 'long', day: 'numeric'
+            });
+        }
+    }
+
+    // ==================== Hologram & VR ====================
+    function launchHologram(relativeId) {
+        const rel = state.relatives.find(r => r.id === relativeId);
+        const nameDisplay = document.getElementById('hologram-name-display');
+        if (nameDisplay && rel) {
+            nameDisplay.innerText = `全息投影：${rel.name} (${rel.relation})`;
+        }
+        document.getElementById('hologram-screen').classList.remove('hidden');
+        renderIcons();
+    }
+
+    function closeHologram() {
+        document.getElementById('hologram-screen').classList.add('hidden');
+    }
+
+    function launchVR(relativeId) {
+        const rel = state.relatives.find(r => r.id === relativeId);
+        if (rel) {
+            const left = document.getElementById('vr-title-left');
+            const right = document.getElementById('vr-title-right');
+            if (left) left.innerText = `沉浸式陪伴：${rel.name}`;
+            if (right) right.innerText = `沉浸式陪伴：${rel.name}`;
+        }
+        document.getElementById('vr-screen').classList.remove('hidden');
+        renderIcons();
+    }
+
+    function closeVR() {
+        document.getElementById('vr-screen').classList.add('hidden');
+    }
+
+    // ==================== AI Chat ====================
+    function startCompanionChat(relativeId) {
+        const rel = state.relatives.find(r => r.id === relativeId);
+        if (!rel) return;
+
+        currentChatRelativeId = relativeId;
+        document.getElementById('chat-relative-name').innerText = `与 [${rel.name}] 深度对话`;
+        document.getElementById('chat-input').value = '';
+
+        let synthBtn = '';
+        if (rel.voiceUploaded) {
+            synthBtn = `
+                <button onclick="triggerSynthesisPlay()" class="mt-2 text-[10px] text-purple-400 font-semibold flex items-center space-x-1 bg-purple-950/40 border border-purple-800/30 px-2 py-1 rounded-full w-max hover:bg-purple-950/60 transition-all">
+                    <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+                    <span>听克隆原声</span>
+                </button>
+            `;
+        }
+
+        const messagesContainer = document.getElementById('chat-messages');
+        messagesContainer.innerHTML = `
+            <div class="flex items-start space-x-3 max-w-[85%] animate-slide-in">
+                <div class="msg-bubble-ai p-3 text-sm text-slate-200">
+                    <p>${rel.characterPrompt || '你好孩子，很高兴再次听见你的呼唤。'}</p>
+                    ${synthBtn}
+                </div>
+            </div>
+        `;
+
+        document.getElementById('chat-modal').classList.remove('hidden');
+        renderIcons();
+
+        // Focus input
+        setTimeout(() => {
+            document.getElementById('chat-input')?.focus();
+        }, 300);
+    }
+
+    function triggerSynthesisPlay() {
+        const player = document.getElementById('voice-synthesis-indicator');
+        const text = document.getElementById('voice-synth-text');
+        if (player) {
+            player.classList.remove('hidden');
+            if (text) text.innerText = '正在通过克隆音质为您朗读回复...';
+        }
+        setTimeout(() => {
+            if (player) player.classList.add('hidden');
+        }, 4000);
+    }
+
+    function closeChat() {
+        document.getElementById('chat-modal').classList.add('hidden');
+        document.getElementById('voice-synthesis-indicator').classList.add('hidden');
+        currentChatRelativeId = null;
+    }
+
+    async function sendChatMessage() {
+        const input = document.getElementById('chat-input');
+        const text = input?.value?.trim();
+        if (!text) return;
+
+        const messagesContainer = document.getElementById('chat-messages');
+        if (!messagesContainer) return;
+
+        // Add user message
+        messagesContainer.innerHTML += `
+            <div class="flex items-start space-x-3 max-w-[85%] ml-auto justify-end animate-slide-in">
+                <div class="msg-bubble-user p-3 text-sm text-white">
+                    ${escapeHtml(text)}
+                </div>
+            </div>
+        `;
+
+        input.value = '';
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        // Show typing indicator
+        const typingEl = document.getElementById('chat-typing-indicator');
+        if (typingEl) typingEl.classList.remove('hidden');
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+        const rel = state.relatives.find(r => r.id === currentChatRelativeId);
+
+        try {
+            // Send to backend for AI response
+            const data = await api(`/api/relatives/${currentChatRelativeId}/chat`, {
+                method: 'POST',
+                body: JSON.stringify({ message: text })
+            });
+
+            if (typingEl) typingEl.classList.add('hidden');
+
+            const reply = data.reply || getAIResponse(rel || { name: '亲人', characterPrompt: '' }, text);
+
+            let synthBtn = '';
+            if (rel && rel.voiceUploaded) {
+                synthBtn = `
+                    <button onclick="triggerSynthesisPlay()" class="mt-2 text-[10px] text-purple-400 font-semibold flex items-center space-x-1 bg-purple-950/40 border border-purple-800/30 px-2 py-1 rounded-full w-max hover:bg-purple-950/60 transition-all">
+                        <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
+                        <span>听克隆原声</span>
+                    </button>
+                `;
+            }
+
+            messagesContainer.innerHTML += `
+                <div class="flex items-start space-x-3 max-w-[85%] animate-slide-in">
+                    <div class="msg-bubble-ai p-3 text-sm text-slate-200">
+                        <p>${escapeHtml(reply)}</p>
+                        ${synthBtn}
+                    </div>
+                </div>
+            `;
+
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            renderIcons();
+
+            // Update local chat history
+            if (rel) {
+                if (!rel.chatHistory) rel.chatHistory = [];
+                rel.chatHistory.push(
+                    { role: 'user', content: text, time: Date.now() },
+                    { role: 'ai', content: reply, time: Date.now() }
+                );
+                if (rel.chatHistory.length > 100) rel.chatHistory = rel.chatHistory.slice(-100);
+            }
+        } catch (e) {
+            if (typingEl) typingEl.classList.add('hidden');
+            // Fallback to local AI
+            const reply = getAIResponse(rel || { name: '亲人', characterPrompt: '' }, text);
+
+            messagesContainer.innerHTML += `
+                <div class="flex items-start space-x-3 max-w-[85%] animate-slide-in">
+                    <div class="msg-bubble-ai p-3 text-sm text-slate-200">
+                        <p>${escapeHtml(reply)}</p>
+                    </div>
+                </div>
+            `;
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            renderIcons();
+        }
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // ==================== Keyboard Support ====================
+    document.addEventListener('keydown', function(e) {
+        // Enter to send in chat
+        if (e.key === 'Enter' && !e.shiftKey) {
+            const chatModal = document.getElementById('chat-modal');
+            if (chatModal && !chatModal.classList.contains('hidden')) {
+                e.preventDefault();
+                sendChatMessage();
+            }
+        }
+        // Escape to close modals
+        if (e.key === 'Escape') {
+            const chatModal = document.getElementById('chat-modal');
+            const modalOverlay = document.getElementById('modal-overlay');
+            const hologram = document.getElementById('hologram-screen');
+            const vr = document.getElementById('vr-screen');
+
+            if (chatModal && !chatModal.classList.contains('hidden')) {
+                closeChat();
+            } else if (modalOverlay && !modalOverlay.classList.contains('hidden')) {
+                closeModal();
+            } else if (hologram && !hologram.classList.contains('hidden')) {
+                closeHologram();
+            } else if (vr && !vr.classList.contains('hidden')) {
+                closeVR();
+            }
+        }
+    });
+
+    // Close modals on backdrop click
+    document.addEventListener('click', function(e) {
+        const overlay = document.getElementById('modal-overlay');
+        if (e.target === overlay) {
+            closeModal();
+        }
+    });
+
+    // ==================== Init ====================
+    async function init() {
+        loadState();
+
+        // Ensure all arrays exist
+        if (!Array.isArray(state.vaultItems)) state.vaultItems = [];
+        if (!Array.isArray(state.messages)) state.messages = [];
+        if (!Array.isArray(state.relatives)) state.relatives = [];
+
+        // Try to restore session from backend
+        if (getToken()) {
+            await tryRestoreSession();
+        }
+
+        updateUI();
+        updateCheckDate();
+        renderIcons();
+
+        // Show home tab by default
+        switchTab('home');
+
+        console.log('🌙 时光留声机 v2.0 已就绪');
+        console.log(`   📦 ${state.vaultItems.length} 项资产 | ✉️ ${state.messages.length} 封留声 | 👤 ${state.relatives.length} 位AI亲人`);
+    }
+
+    // Start the app
+    init();
+    </script>
+</body>
+</html>
