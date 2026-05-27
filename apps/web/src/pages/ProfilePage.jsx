@@ -1,18 +1,26 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useStore } from '../store'
 import api from '../api/client'
 import { User, Settings, LogOut, Bell } from 'lucide-react'
 
 export default function ProfilePage() {
-  const { user, assets, messages, relatives, logout, showToast } = useStore()
+  const { user, assets, messages, relatives, logout, showToast, updateUser } = useStore()
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState({ name: user?.name || '', heartbeat_interval: user?.heartbeat_interval || 30 })
   const [loading, setLoading] = useState(false)
 
+  // Sync form when user changes externally
+  useEffect(() => {
+    if (!editing) {
+      setForm({ name: user?.name || '', heartbeat_interval: user?.heartbeat_interval || 30 })
+    }
+  }, [user?.name, user?.heartbeat_interval, editing])
+
   const save = async () => {
     setLoading(true)
     try {
-      await api.patch('/auth/profile', form)
+      const data = await api.patch('/auth/profile', form)
+      updateUser(data.user || { ...user, ...form })
       showToast('个人信息已更新', 'success')
       setEditing(false)
     } catch (e) { showToast(e, 'error') }

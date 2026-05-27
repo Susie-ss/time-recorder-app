@@ -1,0 +1,12 @@
+{
+  "appId": "com.timerecorder.app",
+  "appName": "时光留声机",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

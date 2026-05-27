@@ -137,7 +137,7 @@ function ChatModal({ rel, onClose }) {
 
   useEffect(() => {
     api.get(`/relatives/${rel.id}/chat`)
-      .then(data => setMessages(data))
+      .then(data => setMessages(data.messages || []))
       .catch(() => {})
       .finally(() => setFetching(false))
   }, [rel.id])

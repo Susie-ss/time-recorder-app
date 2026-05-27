@@ -28,7 +28,7 @@ export const useStore = create((set, get) => ({
   // Assets
   fetchAssets: async () => {
     const data = await api.get('/assets')
-    set({ assets: data })
+    set({ assets: data.assets || [] })
   },
   addAsset: async (form) => {
     const data = await api.post('/assets', form, { headers: { 'Content-Type': 'multipart/form-data' } })
@@ -48,7 +48,7 @@ export const useStore = create((set, get) => ({
   // Messages
   fetchMessages: async () => {
     const data = await api.get('/messages')
-    set({ messages: data })
+    set({ messages: data.messages || [] })
   },
   addMessage: async (body) => {
     const data = await api.post('/messages', body)
@@ -68,7 +68,7 @@ export const useStore = create((set, get) => ({
   // Relatives
   fetchRelatives: async () => {
     const data = await api.get('/relatives')
-    set({ relatives: data })
+    set({ relatives: data.relatives || [] })
   },
   addRelative: async (body) => {
     const data = await api.post('/relatives', body)
@@ -79,6 +79,9 @@ export const useStore = create((set, get) => ({
     await api.delete(`/relatives/${id}`)
     set(s => ({ relatives: s.relatives.filter(r => r.id !== id) }))
   },
+
+  // Update user (for profile sync)
+  updateUser: (user) => set({ user }),
 
   // Heartbeat
   sendHeartbeat: async () => {

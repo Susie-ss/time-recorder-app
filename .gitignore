@@ -6,3 +6,5 @@ dist/
 *.db.json
 .DS_Store
 *.log
+android/
+.capacitor/
