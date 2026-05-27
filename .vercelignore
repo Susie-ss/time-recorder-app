@@ -1,0 +1,5 @@
+pnpm-lock.yaml
+pnpm-workspace.yaml
+.pnpmfile-config.json
+node_modules
+.git
