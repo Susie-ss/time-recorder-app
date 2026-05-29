@@ -21,7 +21,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: 'platforms;android-34 build-tools;34.0.0 platform-tools cmdline-tools;latest'
+          packages: 'platforms;android-36 build-tools;36.0.0 platform-tools cmdline-tools;latest'
 
       - name: Accept Android SDK licenses
         run: yes | $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --licenses || true
@@ -61,8 +61,6 @@ jobs:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx2g"
         run: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-          echo "JAVA_HOME=$JAVA_HOME" >> local.properties
-          cat local.properties
           ./gradlew assembleDebug --stacktrace
 
       - name: Find APK files
