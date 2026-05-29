@@ -34,7 +34,11 @@ jobs:
           version: 9
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Install Capacitor Android platform
+        working-directory: apps/web
+        run: pnpm add @capacitor/android
 
       - name: Build web app
         working-directory: apps/web
@@ -46,6 +50,10 @@ jobs:
           echo "JAVA_HOME=$JAVA_HOME"
           echo "ANDROID_HOME=$ANDROID_HOME"
           npx cap add android
+
+      - name: Sync Capacitor
+        working-directory: apps/web
+        run: npx cap sync android
 
       - name: Build debug APK
         working-directory: apps/web/android
