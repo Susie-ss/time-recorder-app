@@ -6,8 +6,12 @@ const { signToken, auth } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Normalize email: lowercase + trim
+const normEmail = (e) => (e || '').toLowerCase().trim();
+
 router.post('/register', (req, res) => {
-  const { name, email, password } = req.body;
+  const { name, password } = req.body;
+  const email = normEmail(req.body.email);
   if (!name || !email || !password) return res.status(400).json({ error: '请填写完整信息' });
   const exists = db.get('users').find({ email }).value();
   if (exists) return res.status(409).json({ error: '该邮箱已注册' });
@@ -21,7 +25,8 @@ router.post('/register', (req, res) => {
 });
 
 router.post('/login', (req, res) => {
-  const { email, password } = req.body;
+  const { password } = req.body;
+  const email = normEmail(req.body.email);
   if (!email || !password) return res.status(400).json({ error: '请填写完整信息' });
   const row = db.get('users').find({ email }).value();
   if (!row || !bcrypt.compareSync(password, row.password)) return res.status(401).json({ error: '邮箱或密码错误' });
