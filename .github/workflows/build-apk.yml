@@ -55,32 +55,17 @@ jobs:
         working-directory: apps/web
         run: npx cap sync android
 
-      - name: Debug Gradle config
-        working-directory: apps/web/android
-        run: |
-          echo "=== JAVA_HOME=$JAVA_HOME ==="
-          echo "=== ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT ==="
-          echo "=== ANDROID_HOME=$ANDROID_HOME ==="
-          echo "=== Gradle wrapper properties ==="
-          cat gradle/wrapper/gradle-wrapper.properties 2>/dev/null || echo "missing"
-          echo "=== build.gradle ==="
-          cat build.gradle 2>/dev/null || echo "missing"
-          echo "=== app/build.gradle ==="
-          cat app/build.gradle 2>/dev/null || echo "missing"
-          echo "=== gradle.properties ==="
-          cat gradle.properties 2>/dev/null || echo "missing"
-          echo "=== local.properties ==="
-          cat local.properties 2>/dev/null || echo "missing"
-
       - name: Build debug APK
         working-directory: apps/web/android
         env:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx2g"
-        run: ./gradlew assembleDebug --stacktrace --info 2>&1 | tail -200
+        run: ./gradlew assembleDebug
+
+      - name: Find APK files
+        run: find apps/web/android -name "*.apk" -type f 2>/dev/null || echo "no apk found"
 
       - name: Upload APK artifact
-        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: time-recorder-debug
-          path: apps/web/android/app/build/outputs/apk/debug/app-debug.apk
+          path: apps/web/android/app/build/outputs/apk/**/*.apk
