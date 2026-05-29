@@ -59,12 +59,18 @@ jobs:
         working-directory: apps/web/android
         env:
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx2g"
-        run: ./gradlew assembleDebug
+        run: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+          echo "JAVA_HOME=$JAVA_HOME" >> local.properties
+          cat local.properties
+          ./gradlew assembleDebug --stacktrace
 
       - name: Find APK files
+        if: always()
         run: find apps/web/android -name "*.apk" -type f 2>/dev/null || echo "no apk found"
 
       - name: Upload APK artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: time-recorder-debug
