@@ -4,7 +4,13 @@ const cors = require('cors');
 const app = express();
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+
+// Vercel Node.js runtime pre-parses request body; skip if already consumed
+const jsonParser = express.json();
+app.use((req, res, next) => {
+  if (req.readableEnded) return next();      // body already read by Vercel
+  jsonParser(req, res, next);
+});
 
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/assets', require('./routes/assets'));
