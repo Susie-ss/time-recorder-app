@@ -24,8 +24,13 @@ router.use('/uploads', express.static(UPLOAD_DIR));
 
 router.get('/', auth, async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT * FROM assets WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
-    res.json({ assets: rows });
+    const ids = await db.zrange(`assets:${req.user.id}`, 0, -1);
+    if (!ids || ids.length === 0) return res.json({ assets: [] });
+
+    const keys = ids.reverse().map(id => `asset:${id}`);
+    const raws = await db.mget(...keys);
+    const assets = raws.filter(r => r).map(r => (typeof r === 'string' ? JSON.parse(r) : r));
+    res.json({ assets });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -46,48 +51,54 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       }
     }
 
-    const { rows } = await db.query(
-      `INSERT INTO assets (user_id, type, title, content, file_url, file_name, tags)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [req.user.id, type, title, content || null, file_url, file_name, JSON.stringify(parsedTags)]
-    );
-    res.status(201).json(rows[0]);
+    const id = uuidv4();
+    const asset = {
+      id, user_id: req.user.id, type, title,
+      content: content || null, file_url, file_name,
+      tags: parsedTags,
+      created_at: new Date().toISOString()
+    };
+
+    await db.set(`asset:${id}`, JSON.stringify(asset));
+    await db.zadd(`assets:${req.user.id}`, { score: Date.now(), member: id });
+
+    res.status(201).json(asset);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 router.patch('/:id', auth, upload.single('file'), async (req, res) => {
   try {
-    const { rows: existing } = await db.query('SELECT * FROM assets WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
-    if (existing.length === 0) return res.status(404).json({ error: '资产不存在' });
+    const raw = await db.get(`asset:${req.params.id}`);
+    if (!raw) return res.status(404).json({ error: '资产不存在' });
+    const asset = JSON.parse(raw);
+    if (asset.user_id !== req.user.id) return res.status(404).json({ error: '资产不存在' });
 
     const { title, content, tags } = req.body;
-    const sets = [], vals = [];
-    let i = 1;
-
-    if (title) { sets.push(`title = $${i++}`); vals.push(title); }
-    if (content !== undefined) { sets.push(`content = $${i++}`); vals.push(content); }
-    if (req.file) { sets.push(`file_url = $${i++}`); vals.push(`/api/assets/uploads/${req.file.filename}`); sets.push(`file_name = $${i++}`); vals.push(req.file.originalname); }
+    if (title) asset.title = title;
+    if (content !== undefined) asset.content = content;
+    if (req.file) { asset.file_url = `/api/assets/uploads/${req.file.filename}`; asset.file_name = req.file.originalname; }
     if (tags) {
-      let pt = [];
-      try { const arr = JSON.parse(tags); pt = Array.isArray(arr) ? arr : [tags]; } catch { pt = [tags]; }
-      sets.push(`tags = $${i++}`); vals.push(JSON.stringify(pt));
+      if (typeof tags === 'string') {
+        try { const arr = JSON.parse(tags); asset.tags = Array.isArray(arr) ? arr : [tags]; } catch { asset.tags = [tags]; }
+      } else if (Array.isArray(tags)) {
+        asset.tags = tags;
+      }
     }
 
-    if (sets.length > 0) {
-      vals.push(req.params.id, req.user.id);
-      await db.query(`UPDATE assets SET ${sets.join(', ')} WHERE id = $${i++} AND user_id = $${i}`, vals);
-    }
-
-    const { rows } = await db.query('SELECT * FROM assets WHERE id = $1', [req.params.id]);
-    res.json(rows[0]);
+    await db.set(`asset:${req.params.id}`, JSON.stringify(asset));
+    res.json(asset);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT * FROM assets WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
-    if (rows.length === 0) return res.status(404).json({ error: '资产不存在' });
-    await db.query('DELETE FROM assets WHERE id = $1', [req.params.id]);
+    const raw = await db.get(`asset:${req.params.id}`);
+    if (!raw) return res.status(404).json({ error: '资产不存在' });
+    const asset = JSON.parse(raw);
+    if (asset.user_id !== req.user.id) return res.status(404).json({ error: '资产不存在' });
+
+    await db.del(`asset:${req.params.id}`);
+    await db.zrem(`assets:${req.user.id}`, req.params.id);
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });

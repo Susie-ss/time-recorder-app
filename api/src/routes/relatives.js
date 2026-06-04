@@ -1,4 +1,5 @@
 const express = require('express');
+const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { auth } = require('../middleware/auth');
 
@@ -6,8 +7,13 @@ const router = express.Router();
 
 router.get('/', auth, async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT * FROM relatives WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
-    res.json({ relatives: rows });
+    const ids = await db.zrange(`relatives:${req.user.id}`, 0, -1);
+    if (!ids || ids.length === 0) return res.json({ relatives: [] });
+
+    const keys = ids.reverse().map(id => `relative:${id}`);
+    const raws = await db.mget(...keys);
+    const relatives = raws.filter(r => r).map(r => (typeof r === 'string' ? JSON.parse(r) : r));
+    res.json({ relatives });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
@@ -16,79 +22,96 @@ router.post('/', auth, async (req, res) => {
     const { name, relation, personality, memories, trained_assets } = req.body;
     if (!name || !relation || !personality) return res.status(400).json({ error: '请填写必填字段' });
 
-    const { rows } = await db.query(
-      `INSERT INTO relatives (user_id, name, relation, personality, memories, trained_assets)
-       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
-      [req.user.id, name, relation, personality, JSON.stringify(memories || []), JSON.stringify(trained_assets || [])]
-    );
-    res.status(201).json(rows[0]);
+    const id = uuidv4();
+    const rel = {
+      id, user_id: req.user.id, name, relation, personality,
+      memories: memories || [], trained_assets: trained_assets || [],
+      avatar: null,
+      created_at: new Date().toISOString()
+    };
+
+    await db.set(`relative:${id}`, JSON.stringify(rel));
+    await db.zadd(`relatives:${req.user.id}`, { score: Date.now(), member: id });
+
+    res.status(201).json(rel);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 router.patch('/:id', auth, async (req, res) => {
   try {
-    const { rows: existing } = await db.query('SELECT * FROM relatives WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
-    if (existing.length === 0) return res.status(404).json({ error: '数字亲人不存在' });
+    const raw = await db.get(`relative:${req.params.id}`);
+    if (!raw) return res.status(404).json({ error: '数字亲人不存在' });
+    const rel = JSON.parse(raw);
+    if (rel.user_id !== req.user.id) return res.status(404).json({ error: '数字亲人不存在' });
 
-    const sets = [], vals = [];
-    let i = 1;
-    ['name', 'relation', 'personality'].forEach(k => {
-      if (req.body[k] !== undefined) { sets.push(`${k} = $${i++}`); vals.push(req.body[k]); }
-    });
-    ['memories', 'trained_assets'].forEach(k => {
-      if (req.body[k] !== undefined) { sets.push(`${k} = $${i++}`); vals.push(JSON.stringify(req.body[k])); }
+    ['name', 'relation', 'personality', 'memories', 'trained_assets'].forEach(k => {
+      if (req.body[k] !== undefined) rel[k] = req.body[k];
     });
 
-    if (sets.length > 0) {
-      vals.push(req.params.id, req.user.id);
-      await db.query(`UPDATE relatives SET ${sets.join(', ')} WHERE id = $${i++} AND user_id = $${i}`, vals);
-    }
-
-    const { rows } = await db.query('SELECT * FROM relatives WHERE id = $1', [req.params.id]);
-    res.json(rows[0]);
+    await db.set(`relative:${req.params.id}`, JSON.stringify(rel));
+    res.json(rel);
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 router.delete('/:id', auth, async (req, res) => {
   try {
-    const { rows } = await db.query('SELECT * FROM relatives WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
-    if (rows.length === 0) return res.status(404).json({ error: '数字亲人不存在' });
-    await db.query('DELETE FROM relatives WHERE id = $1', [req.params.id]);
+    const raw = await db.get(`relative:${req.params.id}`);
+    if (!raw) return res.status(404).json({ error: '数字亲人不存在' });
+    const rel = JSON.parse(raw);
+    if (rel.user_id !== req.user.id) return res.status(404).json({ error: '数字亲人不存在' });
+
+    await db.del(`relative:${req.params.id}`);
+    await db.zrem(`relatives:${req.user.id}`, req.params.id);
+
+    // Clean up chat messages
+    const chatIds = await db.zrange(`chats:${req.params.id}`, 0, -1);
+    if (chatIds && chatIds.length > 0) {
+      const chatKeys = chatIds.map(cid => `chat:${cid}`);
+      await db.del(...chatKeys);
+      await db.del(`chats:${req.params.id}`);
+    }
+
     res.json({ success: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 router.get('/:id/chat', auth, async (req, res) => {
   try {
-    const { rows: rel } = await db.query('SELECT * FROM relatives WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
-    if (rel.length === 0) return res.status(404).json({ error: '数字亲人不存在' });
+    const raw = await db.get(`relative:${req.params.id}`);
+    if (!raw) return res.status(404).json({ error: '数字亲人不存在' });
+    const rel = JSON.parse(raw);
+    if (rel.user_id !== req.user.id) return res.status(404).json({ error: '数字亲人不存在' });
 
-    const { rows: msgs } = await db.query(
-      'SELECT * FROM chat_messages WHERE relative_id = $1 ORDER BY created_at ASC LIMIT 100',
-      [req.params.id]
-    );
-    res.json({ messages: msgs });
+    const ids = await db.zrange(`chats:${req.params.id}`, 0, 99);
+    if (!ids || ids.length === 0) return res.json({ messages: [] });
+
+    const keys = ids.map(id => `chat:${id}`);
+    const raws = await db.mget(...keys);
+    const messages = raws.filter(r => r).map(r => (typeof r === 'string' ? JSON.parse(r) : r));
+    res.json({ messages });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 router.post('/:id/chat', auth, async (req, res) => {
   try {
-    const { rows: rel } = await db.query('SELECT * FROM relatives WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
-    if (rel.length === 0) return res.status(404).json({ error: '数字亲人不存在' });
+    const raw = await db.get(`relative:${req.params.id}`);
+    if (!raw) return res.status(404).json({ error: '数字亲人不存在' });
+    const rel = JSON.parse(raw);
+    if (rel.user_id !== req.user.id) return res.status(404).json({ error: '数字亲人不存在' });
 
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: '消息不能为空' });
 
-    const { rows: [userMsg] } = await db.query(
-      `INSERT INTO chat_messages (relative_id, role, content) VALUES ($1, 'user', $2) RETURNING *`,
-      [req.params.id, message]
-    );
+    const uid = uuidv4();
+    const userMsg = { id: uid, relative_id: req.params.id, role: 'user', content: message, created_at: new Date().toISOString() };
+    await db.set(`chat:${uid}`, JSON.stringify(userMsg));
+    await db.zadd(`chats:${req.params.id}`, { score: Date.now(), member: uid });
 
-    const reply = generateReply(message, rel[0]);
-    const { rows: [aiMsg] } = await db.query(
-      `INSERT INTO chat_messages (relative_id, role, content) VALUES ($1, 'assistant', $2) RETURNING *`,
-      [req.params.id, reply]
-    );
+    const reply = generateReply(message, rel);
+    const aid = uuidv4();
+    const aiMsg = { id: aid, relative_id: req.params.id, role: 'assistant', content: reply, created_at: new Date().toISOString() };
+    await db.set(`chat:${aid}`, JSON.stringify(aiMsg));
+    await db.zadd(`chats:${req.params.id}`, { score: Date.now(), member: aid });
 
     res.json({ userMsg, aiMsg, reply });
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -96,7 +119,6 @@ router.post('/:id/chat', auth, async (req, res) => {
 
 function generateReply(message, rel) {
   const { name, personality, memories = [] } = rel;
-  // Convert JSONB memories to array
   const mems = Array.isArray(memories) ? memories : [];
   const msg = message.toLowerCase();
   if (/你好|hello|嗨|hi|早|晚|下午好/.test(msg)) {
