@@ -1,20 +1,26 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.post('/', auth, (req, res) => {
-  const now = new Date().toISOString();
-  db.get('heartbeats').push({ id: uuidv4(), user_id: req.user.id, created_at: now }).write();
-  db.get('users').find({ id: req.user.id }).assign({ last_heartbeat: now }).write();
-  res.json({ success: true, timestamp: now });
+router.post('/', auth, async (req, res) => {
+  try {
+    await db.query('INSERT INTO heartbeats (user_id) VALUES ($1)', [req.user.id]);
+    const now = new Date().toISOString();
+    await db.query('UPDATE users SET last_heartbeat = $1 WHERE id = $2', [now, req.user.id]);
+    res.json({ success: true, timestamp: now });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.get('/history', auth, (req, res) => {
-  const rows = db.get('heartbeats').filter({ user_id: req.user.id }).sortBy('created_at').reverse().take(30).value();
-  res.json(rows);
+router.get('/history', auth, async (req, res) => {
+  try {
+    const { rows } = await db.query(
+      'SELECT * FROM heartbeats WHERE user_id = $1 ORDER BY created_at DESC LIMIT 30',
+      [req.user.id]
+    );
+    res.json(rows);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 module.exports = router;

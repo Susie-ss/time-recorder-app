@@ -1,66 +1,103 @@
 const express = require('express');
-const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
-router.get('/', auth, (req, res) => {
-  res.json({ relatives: db.get('relatives').filter({ user_id: req.user.id }).sortBy('created_at').reverse().value() });
+router.get('/', auth, async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM relatives WHERE user_id = $1 ORDER BY created_at DESC', [req.user.id]);
+    res.json({ relatives: rows });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/', auth, (req, res) => {
-  const { name, relation, personality, memories, trained_assets } = req.body;
-  if (!name || !relation || !personality) return res.status(400).json({ error: '请填写必填字段' });
-  const rel = { id: uuidv4(), user_id: req.user.id, name, relation, personality, memories: memories || [], trained_assets: trained_assets || [], avatar: null, created_at: new Date().toISOString() };
-  db.get('relatives').push(rel).write();
-  res.status(201).json(rel);
+router.post('/', auth, async (req, res) => {
+  try {
+    const { name, relation, personality, memories, trained_assets } = req.body;
+    if (!name || !relation || !personality) return res.status(400).json({ error: '请填写必填字段' });
+
+    const { rows } = await db.query(
+      `INSERT INTO relatives (user_id, name, relation, personality, memories, trained_assets)
+       VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+      [req.user.id, name, relation, personality, JSON.stringify(memories || []), JSON.stringify(trained_assets || [])]
+    );
+    res.status(201).json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.patch('/:id', auth, (req, res) => {
-  const rel = db.get('relatives').find({ id: req.params.id, user_id: req.user.id }).value();
-  if (!rel) return res.status(404).json({ error: '数字亲人不存在' });
-  const updates = {};
-  ['name', 'relation', 'personality', 'memories', 'trained_assets'].forEach(k => {
-    if (req.body[k] !== undefined) updates[k] = req.body[k];
-  });
-  db.get('relatives').find({ id: req.params.id }).assign(updates).write();
-  res.json(db.get('relatives').find({ id: req.params.id }).value());
+router.patch('/:id', auth, async (req, res) => {
+  try {
+    const { rows: existing } = await db.query('SELECT * FROM relatives WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+    if (existing.length === 0) return res.status(404).json({ error: '数字亲人不存在' });
+
+    const sets = [], vals = [];
+    let i = 1;
+    ['name', 'relation', 'personality'].forEach(k => {
+      if (req.body[k] !== undefined) { sets.push(`${k} = $${i++}`); vals.push(req.body[k]); }
+    });
+    ['memories', 'trained_assets'].forEach(k => {
+      if (req.body[k] !== undefined) { sets.push(`${k} = $${i++}`); vals.push(JSON.stringify(req.body[k])); }
+    });
+
+    if (sets.length > 0) {
+      vals.push(req.params.id, req.user.id);
+      await db.query(`UPDATE relatives SET ${sets.join(', ')} WHERE id = $${i++} AND user_id = $${i}`, vals);
+    }
+
+    const { rows } = await db.query('SELECT * FROM relatives WHERE id = $1', [req.params.id]);
+    res.json(rows[0]);
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.delete('/:id', auth, (req, res) => {
-  if (!db.get('relatives').find({ id: req.params.id, user_id: req.user.id }).value())
-    return res.status(404).json({ error: '数字亲人不存在' });
-  db.get('relatives').remove({ id: req.params.id }).write();
-  db.get('chat_messages').remove({ relative_id: req.params.id }).write();
-  res.json({ success: true });
+router.delete('/:id', auth, async (req, res) => {
+  try {
+    const { rows } = await db.query('SELECT * FROM relatives WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+    if (rows.length === 0) return res.status(404).json({ error: '数字亲人不存在' });
+    await db.query('DELETE FROM relatives WHERE id = $1', [req.params.id]);
+    res.json({ success: true });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.get('/:id/chat', auth, (req, res) => {
-  if (!db.get('relatives').find({ id: req.params.id, user_id: req.user.id }).value())
-    return res.status(404).json({ error: '数字亲人不存在' });
-  const msgs = db.get('chat_messages').filter({ relative_id: req.params.id }).sortBy('created_at').takeRight(100).value();
-  res.json({ messages: msgs });
+router.get('/:id/chat', auth, async (req, res) => {
+  try {
+    const { rows: rel } = await db.query('SELECT * FROM relatives WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+    if (rel.length === 0) return res.status(404).json({ error: '数字亲人不存在' });
+
+    const { rows: msgs } = await db.query(
+      'SELECT * FROM chat_messages WHERE relative_id = $1 ORDER BY created_at ASC LIMIT 100',
+      [req.params.id]
+    );
+    res.json({ messages: msgs });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/:id/chat', auth, (req, res) => {
-  const rel = db.get('relatives').find({ id: req.params.id, user_id: req.user.id }).value();
-  if (!rel) return res.status(404).json({ error: '数字亲人不存在' });
-  const { message } = req.body;
-  if (!message) return res.status(400).json({ error: '消息不能为空' });
+router.post('/:id/chat', auth, async (req, res) => {
+  try {
+    const { rows: rel } = await db.query('SELECT * FROM relatives WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+    if (rel.length === 0) return res.status(404).json({ error: '数字亲人不存在' });
 
-  const userMsg = { id: uuidv4(), relative_id: rel.id, role: 'user', content: message, created_at: new Date().toISOString() };
-  db.get('chat_messages').push(userMsg).write();
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: '消息不能为空' });
 
-  const reply = generateReply(message, rel);
-  const aiMsg = { id: uuidv4(), relative_id: rel.id, role: 'assistant', content: reply, created_at: new Date(Date.now() + 1).toISOString() };
-  db.get('chat_messages').push(aiMsg).write();
+    const { rows: [userMsg] } = await db.query(
+      `INSERT INTO chat_messages (relative_id, role, content) VALUES ($1, 'user', $2) RETURNING *`,
+      [req.params.id, message]
+    );
 
-  res.json({ userMsg, aiMsg, reply });
+    const reply = generateReply(message, rel[0]);
+    const { rows: [aiMsg] } = await db.query(
+      `INSERT INTO chat_messages (relative_id, role, content) VALUES ($1, 'assistant', $2) RETURNING *`,
+      [req.params.id, reply]
+    );
+
+    res.json({ userMsg, aiMsg, reply });
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 function generateReply(message, rel) {
   const { name, personality, memories = [] } = rel;
+  // Convert JSONB memories to array
+  const mems = Array.isArray(memories) ? memories : [];
   const msg = message.toLowerCase();
   if (/你好|hello|嗨|hi|早|晚|下午好/.test(msg)) {
     return [`是我，${name}。听到你的声音，真的好开心。`, `哦，是你啊！我一直在这里等着呢。`, `嗯，我在。有什么想和我聊聊吗？`][Math.floor(Math.random() * 3)];
@@ -74,8 +111,8 @@ function generateReply(message, rel) {
   if (/开心|高兴|快乐|好消息/.test(msg)) return '听到你开心我就放心了。把这份喜悦好好珍藏，以后回想起来也是暖的。';
   if (/难过|伤心|痛苦|哭/.test(msg)) return '不要一个人扛着。你可以难过，但别忘了你身边还有很多爱你的人。我也是。';
   if (/身体|健康|生病|医院/.test(msg)) return '好好休息，把自己照顾好，这比什么都重要。';
-  if (/记得|记忆|以前|当年|小时候/.test(msg) && memories.length > 0) {
-    return `我记得${memories[Math.floor(Math.random() * memories.length)]}。那些时光，是我最珍贵的记忆。`;
+  if (/记得|记忆|以前|当年|小时候/.test(msg) && mems.length > 0) {
+    return `我记得${mems[Math.floor(Math.random() * mems.length)]}。那些时光，是我最珍贵的记忆。`;
   }
   const pResp = {
     温暖慈爱: ['无论发生什么，我都会在这里陪着你。', '你永远是我最重要的人，别忘了这一点。', '今天过得怎么样？跟我说说吧。'],

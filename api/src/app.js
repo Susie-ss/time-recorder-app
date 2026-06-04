@@ -5,10 +5,10 @@ const app = express();
 
 app.use(cors({ origin: true, credentials: true }));
 
-// Vercel Node.js runtime pre-parses request body; skip if already consumed
+// Vercel may pre-parse body; skip express.json() if body already populated
 const jsonParser = express.json();
 app.use((req, res, next) => {
-  if (req.readableEnded) return next();      // body already read by Vercel
+  if (req.body) return next();
   jsonParser(req, res, next);
 });
 
