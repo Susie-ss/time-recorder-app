@@ -31,7 +31,7 @@ router.post('/', auth, async (req, res) => {
     };
 
     await db.set(`relative:${id}`, JSON.stringify(rel));
-    await db.zadd(`relatives:${req.user.id}`, { score: Date.now(), member: id });
+    await db.zadd(`relatives:${req.user.id}`, Date.now(), id);
 
     res.status(201).json(rel);
   } catch (e) { res.status(500).json({ error: e.message }); }
@@ -105,13 +105,13 @@ router.post('/:id/chat', auth, async (req, res) => {
     const uid = uuidv4();
     const userMsg = { id: uid, relative_id: req.params.id, role: 'user', content: message, created_at: new Date().toISOString() };
     await db.set(`chat:${uid}`, JSON.stringify(userMsg));
-    await db.zadd(`chats:${req.params.id}`, { score: Date.now(), member: uid });
+    await db.zadd(`chats:${req.params.id}`, Date.now(), uid);
 
     const reply = generateReply(message, rel);
     const aid = uuidv4();
     const aiMsg = { id: aid, relative_id: req.params.id, role: 'assistant', content: reply, created_at: new Date().toISOString() };
     await db.set(`chat:${aid}`, JSON.stringify(aiMsg));
-    await db.zadd(`chats:${req.params.id}`, { score: Date.now(), member: aid });
+    await db.zadd(`chats:${req.params.id}`, Date.now(), aid);
 
     res.json({ userMsg, aiMsg, reply });
   } catch (e) { res.status(500).json({ error: e.message }); }

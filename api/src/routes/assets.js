@@ -60,7 +60,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
     };
 
     await db.set(`asset:${id}`, JSON.stringify(asset));
-    await db.zadd(`assets:${req.user.id}`, { score: Date.now(), member: id });
+    await db.zadd(`assets:${req.user.id}`, Date.now(), id);
 
     res.status(201).json(asset);
   } catch (e) { res.status(500).json({ error: e.message }); }

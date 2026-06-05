@@ -31,7 +31,7 @@ router.post('/', auth, async (req, res) => {
     };
 
     await db.set(`msg:${id}`, JSON.stringify(msg));
-    await db.zadd(`msgs:${req.user.id}`, { score: Date.now(), member: id });
+    await db.zadd(`msgs:${req.user.id}`, Date.now(), id);
 
     res.status(201).json(msg);
   } catch (e) { res.status(500).json({ error: e.message }); }

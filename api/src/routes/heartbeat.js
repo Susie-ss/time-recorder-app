@@ -12,7 +12,7 @@ router.post('/', auth, async (req, res) => {
     const now = hb.created_at;
 
     await db.set(`hb:${id}`, JSON.stringify(hb));
-    await db.zadd(`hbs:${req.user.id}`, { score: Date.now(), member: id });
+    await db.zadd(`hbs:${req.user.id}`, Date.now(), id);
 
     // Update user's last_heartbeat
     const raw = await db.get(`user:${req.user.id}`);

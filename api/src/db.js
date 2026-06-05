@@ -1,10 +1,15 @@
-const { Redis } = require('@upstash/redis');
+const Redis = require('ioredis');
 
-const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN,
+const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+
+// ioredis: lazy connect, works well with Vercel serverless
+const redis = new Redis(redisUrl, {
+  maxRetriesPerRequest: 3,
+  lazyConnect: true,
+  tls: {},
 });
 
-redis.ping().then(() => console.log('[DB] Upstash Redis connected')).catch(err => console.error('[DB] Redis connection failed:', err.message));
+redis.on('error', (err) => console.error('[DB] Redis error:', err.message));
+redis.on('connect', () => console.log('[DB] Redis connected'));
 
 module.exports = redis;
