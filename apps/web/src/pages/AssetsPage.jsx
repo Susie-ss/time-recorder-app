@@ -145,11 +145,11 @@ function AddAssetModal({ onClose }) {
           ))}
         </div>
         {/* Title */}
-        <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="凭证名称"
+        <input value={form.title} onChange={e => set('title', e.target.value)}
           className="w-full bg-slate-800 text-white text-sm rounded-xl px-4 py-3 outline-none focus:ring-1 focus:ring-purple-500" />
         {/* Content */}
         {form.type === 'text' && (
-          <textarea value={form.content} onChange={e => set('content', e.target.value)} placeholder="内容描述（账号密码、遗嘱内容等）" rows={4}
+          <textarea value={form.content} onChange={e => set('content', e.target.value)} rows={4}
             className="w-full bg-slate-800 text-white text-sm rounded-xl px-4 py-3 outline-none focus:ring-1 focus:ring-purple-500 resize-none" />
         )}
         {/* File */}
@@ -164,7 +164,7 @@ function AddAssetModal({ onClose }) {
           </div>
         )}
         {/* Tags */}
-        <input value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="标签（逗号分隔，如：银行,保险）"
+        <input value={form.tags} onChange={e => set('tags', e.target.value)}
           className="w-full bg-slate-800 text-white text-sm rounded-xl px-4 py-3 outline-none focus:ring-1 focus:ring-purple-500" />
         <button onClick={submit} disabled={loading}
           className="w-full py-3.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-2xl active:scale-95 transition-all disabled:opacity-50">
