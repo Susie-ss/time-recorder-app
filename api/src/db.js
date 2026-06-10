@@ -10,7 +10,7 @@ const redis = new Redis(REDIS_URL, {
     if (times > 2) return null;
     return Math.min(times * 400, 2000);
   },
-  lazyConnect: false, // connect on creation (warms up cold start)
+  lazyConnect: true,  // connect on first command — better for Vercel cold starts
   tls: undefined,     // plain TCP — no TLS
 });
 
