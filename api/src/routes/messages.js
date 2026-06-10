@@ -37,6 +37,7 @@ router.post('/', auth, upload.single('file'), async (req, res) => {
       msg.file_name = req.file.originalname;
       msg.file_size = req.file.size;
       msg.file_type = req.file.mimetype;
+      msg.file_data = req.file.buffer.toString('base64');
     }
 
     await db.set(`msg:${id}`, JSON.stringify(msg));
