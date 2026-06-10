@@ -38,7 +38,18 @@ app.use('/api/messages', require('./routes/messages'));
 app.use('/api/relatives', require('./routes/relatives'));
 app.use('/api/heartbeat', require('./routes/heartbeat'));
 
-app.get('/api/health', (req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+app.get('/api/health', async (req, res) => {
+  const db = require('./db');
+  let redisOk = false;
+  let redisErr = null;
+  try {
+    await db.ping();
+    redisOk = true;
+  } catch (e) {
+    redisErr = e.message;
+  }
+  res.json({ ok: true, redis: redisOk ? 'connected' : redisErr, time: new Date().toISOString() });
+});
 
 // Global error handler — always return JSON, never HTML
 app.use((err, req, res, next) => {
