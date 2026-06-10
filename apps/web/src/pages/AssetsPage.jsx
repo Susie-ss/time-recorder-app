@@ -4,9 +4,9 @@ import Modal from '../components/Modal'
 import { Plus, FileText, Image, File, Trash2, Eye, Tag } from 'lucide-react'
 
 const TYPE_INFO = {
-  text:     { label: '文字凭证', icon: FileText, color: 'purple' },
-  image:    { label: '图片资产', icon: Image,    color: 'blue' },
-  document: { label: '重要文件', icon: File,     color: 'amber' },
+  text:     { label: '文本', icon: FileText, color: 'purple' },
+  image:    { label: '图片', icon: Image,    color: 'blue' },
+  document: { label: '文档', icon: File,     color: 'amber' },
 }
 
 export default function AssetsPage() {
@@ -145,11 +145,14 @@ function AddAssetModal({ onClose }) {
           ))}
         </div>
         {/* Title */}
-        <input value={form.title} onChange={e => set('title', e.target.value)}
-          className="w-full bg-slate-800 text-white text-sm rounded-xl px-4 py-3 outline-none focus:ring-1 focus:ring-purple-500" />
+        <div>
+          <label className="text-xs text-slate-400 font-medium mb-1.5 block">标题</label>
+          <input value={form.title} onChange={e => set('title', e.target.value)} placeholder="请输入"
+            className="w-full bg-slate-800 text-white text-sm rounded-xl px-4 py-3 outline-none focus:ring-1 focus:ring-purple-500" />
+        </div>
         {/* Content */}
         {form.type === 'text' && (
-          <textarea value={form.content} onChange={e => set('content', e.target.value)} rows={4}
+          <textarea value={form.content} onChange={e => set('content', e.target.value)} placeholder="请输入" rows={4}
             className="w-full bg-slate-800 text-white text-sm rounded-xl px-4 py-3 outline-none focus:ring-1 focus:ring-purple-500 resize-none" />
         )}
         {/* File */}
@@ -164,7 +167,7 @@ function AddAssetModal({ onClose }) {
           </div>
         )}
         {/* Tags */}
-        <input value={form.tags} onChange={e => set('tags', e.target.value)}
+        <input value={form.tags} onChange={e => set('tags', e.target.value)} placeholder="请输入"
           className="w-full bg-slate-800 text-white text-sm rounded-xl px-4 py-3 outline-none focus:ring-1 focus:ring-purple-500" />
         <button onClick={submit} disabled={loading}
           className="w-full py-3.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-2xl active:scale-95 transition-all disabled:opacity-50">
