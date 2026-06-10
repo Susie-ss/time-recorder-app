@@ -28,7 +28,8 @@ app.use((req, res, next) => {
 
 // Debug: log incoming requests
 app.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} body=${JSON.stringify(req.body).substring(0, 100)}`);
+  const bodyStr = req.body ? JSON.stringify(req.body).substring(0, 100) : '(none)';
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path} body=${bodyStr}`);
   next();
 });
 
