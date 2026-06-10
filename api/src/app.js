@@ -44,7 +44,7 @@ app.get('/api/health', async (req, res) => {
   let redisOk = false;
   let redisErr = null;
   try {
-    await db.ping();
+    await db.pingReady();
     redisOk = true;
   } catch (e) {
     redisErr = e.message;
