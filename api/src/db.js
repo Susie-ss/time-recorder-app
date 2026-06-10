@@ -1,25 +1,93 @@
-const Redis = require('ioredis');
+// Upstash Redis REST API — pipeline POST for all commands (no URL length limits)
+// Parses REDIS_URL=redis://default:TOKEN@HOST:PORT
 
-const rawUrl = process.env.REDIS_URL || 'redis://localhost:6379';
+const REDIS_URL = process.env.REDIS_URL || '';
 
-// Upstash uses TLS but gives redis:// scheme — convert to rediss:// for ioredis
-const redisUrl = rawUrl.includes('redis.io') ? rawUrl.replace('redis://', 'rediss://') : rawUrl;
+let restUrl, restToken;
 
-const redis = new Redis(redisUrl, {
-  connectTimeout: 10000,
-  maxRetriesPerRequest: 2,
-  retryStrategy(times) {
-    if (times > 3) return null; // give up after 3 retries
-    console.log(`[DB] Redis retry ${times}`);
-    return Math.min(times * 400, 2000);
-  },
-  lazyConnect: true,
-});
+if (REDIS_URL) {
+  try {
+    const u = new URL(REDIS_URL);
+    restUrl = `https://${u.hostname}`;
+    restToken = u.password || '';
+  } catch { restUrl = null; restToken = null; }
+}
 
-let connected = false;
-redis.on('connect', () => { connected = true; console.log('[DB] Redis connected'); });
-redis.on('error', (err) => console.error('[DB] Redis error:', err.message));
+// Execute a single Redis command via pipeline POST
+async function cmd(command, ...args) {
+  if (!restUrl || !restToken) throw new Error('REDIS_URL not configured');
+  const resp = await fetch(`${restUrl}/pipeline`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${restToken}`,
+    },
+    body: JSON.stringify([[command, ...args]]),
+    signal: AbortSignal.timeout(10000),
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Redis ${resp.status}: ${text.substring(0, 200)}`);
+  }
+  const results = await resp.json();
+  if (results[0].error) throw new Error(results[0].error);
+  return results[0].result;
+}
 
-redis.isReady = () => connected;
+// Execute multiple commands in one pipeline
+async function pipeline(commands) {
+  if (!restUrl || !restToken) throw new Error('REDIS_URL not configured');
+  const resp = await fetch(`${restUrl}/pipeline`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${restToken}`,
+    },
+    body: JSON.stringify(commands),
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!resp.ok) {
+    const text = await resp.text();
+    throw new Error(`Redis ${resp.status}: ${text.substring(0, 200)}`);
+  }
+  const results = await resp.json();
+  // Return array of result values (throw on first error)
+  return results.map((r) => {
+    if (r.error) throw new Error(r.error);
+    return r.result;
+  });
+}
 
-module.exports = redis;
+const db = {
+  connect: () => (restUrl && restToken) ? Promise.resolve('OK') : Promise.reject(new Error('REDIS_URL not configured')),
+
+  // String
+  get: (key) => cmd('get', key),
+  set: (key, value) => cmd('set', key, value),
+  del: (...keys) => cmd('del', ...keys),
+  exists: (key) => cmd('exists', key),
+  incr: (key) => cmd('incr', key),
+  expire: (key, seconds) => cmd('expire', key, String(seconds)),
+
+  // Sorted Set
+  zadd: (key, score, member) => cmd('zadd', key, String(score), member),
+  zrem: (key, member) => cmd('zrem', key, member),
+  zrange: (key, start, stop) => cmd('zrange', key, String(start), String(stop)),
+  zrevrange: (key, start, stop) => cmd('zrevrange', key, String(start), String(stop)),
+  zcard: (key) => cmd('zcard', key),
+
+  // Multi-key
+  mget: (...keys) => cmd('mget', ...keys),
+  mset: (...kvs) => cmd('mset', ...kvs),
+
+  // Utility
+  keys: (pattern) => cmd('keys', pattern),
+  ping: () => cmd('ping'),
+
+  // Batch pipeline
+  pipeline,
+};
+
+console.log(`[DB] REST API: ${restUrl ? restUrl.replace(/\/\/.*@/, '//***@') : 'NOT CONFIGURED'}`);
+
+module.exports = db;
