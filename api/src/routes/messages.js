@@ -1,9 +1,11 @@
 const express = require('express');
+const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 const db = require('../db');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
+const upload = multer({ storage: multer.memoryStorage() });
 
 router.get('/', auth, async (req, res) => {
   try {
@@ -17,7 +19,7 @@ router.get('/', auth, async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-router.post('/', auth, async (req, res) => {
+router.post('/', auth, upload.single('file'), async (req, res) => {
   try {
     const { type, title, content, recipient, contact, send_type, send_time } = req.body;
     if (!type || !title || !content || !recipient || !send_type) return res.status(400).json({ error: '请填写必填字段' });
@@ -29,6 +31,13 @@ router.post('/', auth, async (req, res) => {
       file_url: null, file_name: null,
       created_at: new Date().toISOString()
     };
+
+    // Save uploaded file info if present (audio/video)
+    if (req.file) {
+      msg.file_name = req.file.originalname;
+      msg.file_size = req.file.size;
+      msg.file_type = req.file.mimetype;
+    }
 
     await db.set(`msg:${id}`, JSON.stringify(msg));
     await db.zadd(`msgs:${req.user.id}`, Date.now(), id);
