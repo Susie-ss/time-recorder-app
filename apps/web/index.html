@@ -519,6 +519,7 @@
             type: a.type || 'text',
             recipient: Array.isArray(a.tags) ? (a.tags.join(', ') || '') : (a.tags || ''),
             fileName: a.file_name || '',
+            fileUrl: a.file_url || '',
             fileSize: '',
             date: a.created_at ? new Date(a.created_at).getTime() : Date.now()
         };
@@ -537,6 +538,7 @@
             type: m.type || 'text',
             fileName: m.file_name || '',
             fileData: m.file_data || '',
+            fileType: m.file_type || '',
             date: m.created_at ? new Date(m.created_at).getTime() : Date.now()
         };
     }
@@ -627,6 +629,7 @@
     let uploadedDocName = null;
     let audioIsRecording = false;
     let currentAudioPlayer = null; // { id, audio, btnEl }
+    let currentVideoPlayer = null; // { id, video, btnEl }
 
     let videoIsRecording = false;
 
@@ -1030,9 +1033,12 @@
                                 <h4 class="text-sm font-bold text-slate-200 truncate">${item.title}</h4>
                                 <p class="text-[10px] text-slate-400 font-semibold tracking-wide truncate">${typeLabel} · ${subtitle}</p>
                             </div>
-                            <button onclick="event.stopPropagation(); deleteItem('vaultItems', '${item.id}')" class="text-slate-500 hover:text-red-400 transition-all shrink-0 p-1">
-                                <i data-lucide="trash-2" class="w-4 h-4"></i>
-                            </button>
+                            <div class="flex items-center gap-0.5 shrink-0">
+                                ${item.type !== 'text' && item.fileUrl ? `<a href="${item.fileUrl}" download="${item.fileName || 'download'}" onclick="event.stopPropagation()" class="text-slate-500 hover:text-green-400 transition-all shrink-0 p-1 no-underline"><i data-lucide="download" class="w-4 h-4"></i></a>` : ''}
+                                <button onclick="event.stopPropagation(); deleteItem('vaultItems', '${item.id}')" class="text-slate-500 hover:text-red-400 transition-all shrink-0 p-1">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                            </div>
                         </div>
                     `;
                 }).join('');
@@ -1091,6 +1097,10 @@
                                 ${m.type === 'audio' && m.fileData ? `<button onclick="event.stopPropagation();toggleAudioPlay('${m.id}')" id="audio-play-btn-${m.id}" class="mt-2 w-full py-1.5 bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 text-[10px] rounded-lg flex items-center justify-center gap-1 transition-all border border-purple-500/20">
                                     <i data-lucide="play" class="w-3 h-3" id="audio-play-icon-${m.id}"></i>
                                     <span id="audio-play-text-${m.id}">播放录音</span>
+                                </button>` : ''}
+                                ${m.type === 'video' && m.fileData ? `<button onclick="event.stopPropagation();toggleVideoPlay('${m.id}')" id="video-play-btn-${m.id}" class="mt-2 w-full py-1.5 bg-red-600/20 hover:bg-red-600/40 text-red-300 text-[10px] rounded-lg flex items-center justify-center gap-1 transition-all border border-red-500/20">
+                                    <i data-lucide="play" class="w-3 h-3" id="video-play-icon-${m.id}"></i>
+                                    <span id="video-play-text-${m.id}">播放视频</span>
                                 </button>` : ''}
                             </div>
                         </div>
@@ -1379,6 +1389,28 @@
                         ${escapeHtml(msg.content)}
                     </div>
                 </div>
+
+                ${msg.type === 'audio' && msg.fileData ? `
+                <div class="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
+                    <span class="text-[10px] text-purple-300 uppercase tracking-widest block">录音播放</span>
+                    <button onclick="event.stopPropagation();toggleAudioPlay('${msg.id}', 'detail')" id="audio-play-btn-detail-${msg.id}"
+                        class="w-full py-3 bg-purple-600/20 hover:bg-purple-600/40 text-purple-300 text-sm rounded-xl flex items-center justify-center gap-2 transition-all border border-purple-500/20">
+                        <i data-lucide="play" class="w-4 h-4" id="audio-play-icon-detail-${msg.id}"></i>
+                        <span id="audio-play-text-detail-${msg.id}">播放录音</span>
+                    </button>
+                </div>` : ''}
+
+                ${msg.type === 'video' && msg.fileData ? `
+                <div class="p-4 bg-slate-900/60 rounded-2xl border border-slate-800 space-y-3">
+                    <span class="text-[10px] text-red-300 uppercase tracking-widest block">视频播放</span>
+                    <video id="video-player-detail-${msg.id}" controls class="w-full rounded-xl bg-black" style="max-height: 250px;">
+                    </video>
+                    <button onclick="event.stopPropagation();toggleVideoPlay('${msg.id}', 'detail')" id="video-play-btn-detail-${msg.id}"
+                        class="w-full py-3 bg-red-600/20 hover:bg-red-600/40 text-red-300 text-sm rounded-xl flex items-center justify-center gap-2 transition-all border border-red-500/20">
+                        <i data-lucide="play" class="w-4 h-4" id="video-play-icon-detail-${msg.id}"></i>
+                        <span id="video-play-text-detail-${msg.id}">加载并播放</span>
+                    </button>
+                </div>` : ''}
 
                 <div class="flex space-x-3 pt-2">
                     <button onclick="event.stopPropagation(); showMessageEditForm('${msg.id}')" class="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center space-x-2">
@@ -1762,6 +1794,15 @@
                 </div>
 
                 ${contentBlock}
+
+                ${item.type !== 'text' && item.fileUrl ? `
+                <div class="pt-2">
+                    <a href="${item.fileUrl}" download="${item.fileName || 'download'}" onclick="event.stopPropagation()"
+                        class="w-full py-3.5 bg-green-600/20 hover:bg-green-600/40 text-green-300 rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center gap-2 border border-green-500/20 no-underline">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        <span>下载文件</span>
+                    </a>
+                </div>` : ''}
 
                 <div class="flex space-x-3 pt-2">
                     <button onclick="event.stopPropagation(); showAssetEditForm('${item.id}')" class="flex-1 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-bold text-sm active:scale-95 transition-all flex items-center justify-center space-x-2">
@@ -2323,13 +2364,14 @@
     }
 
     // ==================== Audio Playback ====================
-    function toggleAudioPlay(msgId) {
+    function toggleAudioPlay(msgId, view) {
+        const suffix = view === 'detail' ? '-detail' : '';
         const msg = state.messages.find(m => m.id === msgId);
         if (!msg || !msg.fileData) return;
 
-        const btnEl = document.getElementById('audio-play-btn-' + msgId);
-        const iconEl = document.getElementById('audio-play-icon-' + msgId);
-        const textEl = document.getElementById('audio-play-text-' + msgId);
+        const btnEl = document.getElementById('audio-play-btn' + suffix + '-' + msgId);
+        const iconEl = document.getElementById('audio-play-icon' + suffix + '-' + msgId);
+        const textEl = document.getElementById('audio-play-text' + suffix + '-' + msgId);
 
         // If currently playing this same audio, pause or resume
         if (currentAudioPlayer && currentAudioPlayer.id === msgId) {
@@ -2350,8 +2392,8 @@
         if (currentAudioPlayer) {
             currentAudioPlayer.audio.pause();
             currentAudioPlayer.audio.src = '';
-            const prevIcon = document.getElementById('audio-play-icon-' + currentAudioPlayer.id);
-            const prevText = document.getElementById('audio-play-text-' + currentAudioPlayer.id);
+            const prevIcon = document.getElementById('audio-play-icon' + (currentAudioPlayer.suffix || '') + '-' + currentAudioPlayer.id);
+            const prevText = document.getElementById('audio-play-text' + (currentAudioPlayer.suffix || '') + '-' + currentAudioPlayer.id);
             if (prevIcon) prevIcon.setAttribute('data-lucide', 'play');
             if (prevText) prevText.innerText = '播放录音';
         }
@@ -2361,7 +2403,7 @@
             const binaryStr = atob(msg.fileData);
             const bytes = new Uint8Array(binaryStr.length);
             for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
-            const blob = new Blob([bytes], { type: 'audio/webm' });
+            const blob = new Blob([bytes], { type: msg.fileType || 'audio/webm' });
             const url = URL.createObjectURL(blob);
             const audio = new Audio(url);
 
@@ -2380,7 +2422,7 @@
             };
 
             audio.play();
-            currentAudioPlayer = { id: msgId, audio, btnEl };
+            currentAudioPlayer = { id: msgId, audio, btnEl, suffix };
 
             if (iconEl) iconEl.setAttribute('data-lucide', 'pause');
             if (textEl) textEl.innerText = '暂停播放';
@@ -2388,6 +2430,92 @@
         } catch (e) {
             showToast('音频解码失败', 'error');
             console.error(e);
+        }
+    }
+
+    // ==================== Video Playback ====================
+    function toggleVideoPlay(msgId, view) {
+        const suffix = view === 'detail' ? '-detail' : '';
+        const msg = state.messages.find(m => m.id === msgId);
+        if (!msg || !msg.fileData) return;
+
+        const btnEl = document.getElementById('video-play-btn' + suffix + '-' + msgId);
+        const iconEl = document.getElementById('video-play-icon' + suffix + '-' + msgId);
+        const textEl = document.getElementById('video-play-text' + suffix + '-' + msgId);
+
+        // If currently playing this same video, pause or resume
+        if (currentVideoPlayer && currentVideoPlayer.id === msgId) {
+            if (currentVideoPlayer.video.paused) {
+                currentVideoPlayer.video.play();
+                if (iconEl) iconEl.setAttribute('data-lucide', 'pause');
+                if (textEl) textEl.innerText = '暂停播放';
+            } else {
+                currentVideoPlayer.video.pause();
+                if (iconEl) iconEl.setAttribute('data-lucide', 'play');
+                if (textEl) textEl.innerText = '继续播放';
+            }
+            renderIcons();
+            return;
+        }
+
+        // Stop any previous video
+        if (currentVideoPlayer) {
+            currentVideoPlayer.video.pause();
+            currentVideoPlayer.video.src = '';
+            const prevIcon = document.getElementById('video-play-icon' + (currentVideoPlayer.suffix || '') + '-' + currentVideoPlayer.id);
+            const prevText = document.getElementById('video-play-text' + (currentVideoPlayer.suffix || '') + '-' + currentVideoPlayer.id);
+            if (prevIcon) prevIcon.setAttribute('data-lucide', 'play');
+            if (prevText) prevText.innerText = view === 'detail' ? '加载并播放' : '播放视频';
+            currentVideoPlayer = null;
+        }
+
+        // Load and play video
+        if (textEl) textEl.innerText = '加载中…';
+
+        try {
+            const binaryStr = atob(msg.fileData);
+            const bytes = new Uint8Array(binaryStr.length);
+            for (let i = 0; i < binaryStr.length; i++) bytes[i] = binaryStr.charCodeAt(i);
+            const blob = new Blob([bytes], { type: msg.fileType || 'video/webm' });
+            const url = URL.createObjectURL(blob);
+
+            // In detail view, use the existing video element
+            let video;
+            if (view === 'detail') {
+                video = document.getElementById('video-player-detail-' + msgId);
+                if (!video) return;
+            } else {
+                video = document.createElement('video');
+                video.controls = true;
+                video.style.cssText = 'width:100%;max-height:250px;border-radius:12px;background:#000;';
+            }
+            video.src = url;
+
+            video.onloadedmetadata = () => {
+                if (textEl) textEl.innerText = '播放视频 (' + Math.round(video.duration) + '秒)';
+            };
+            video.onended = () => {
+                if (iconEl) iconEl.setAttribute('data-lucide', 'play');
+                if (textEl) textEl.innerText = view === 'detail' ? '加载并播放' : '播放视频';
+                renderIcons();
+                currentVideoPlayer = null;
+            };
+            video.onerror = () => {
+                showToast('视频播放失败', 'error');
+                currentVideoPlayer = null;
+                if (textEl) textEl.innerText = view === 'detail' ? '加载并播放' : '播放视频';
+            };
+
+            video.play();
+            currentVideoPlayer = { id: msgId, video, suffix };
+
+            if (iconEl) iconEl.setAttribute('data-lucide', 'pause');
+            if (textEl) textEl.innerText = '暂停播放';
+            renderIcons();
+        } catch (e) {
+            showToast('视频解码失败', 'error');
+            console.error(e);
+            if (textEl) textEl.innerText = view === 'detail' ? '加载并播放' : '播放视频';
         }
     }
 
